@@ -1,0 +1,12 @@
+# Supabase CLI temporary files
+**/supabase/.temp/
+**/supabase/.branches/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*
+supabase/functions/**/.env
+
+# Sensitive service accounts or keys
+supabase/functions/service-account.json
