@@ -1,0 +1,273 @@
+import { Briefcase, Plus, Users, Eye, Edit, Trash2, BarChart3, Clock, MapPin, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import Sidebar from "./Sidebar";
+import ModalNuevaVacante from "./modals/ModalNuevaVacante";
+import ModalSolicitudes from "./modals/ModalSolicitudes";
+import { useState } from "react";
+
+export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: string) => void }) {
+  const [modalNuevaOpen, setModalNuevaOpen] = useState(false);
+  const [modalSolicitudesOpen, setModalSolicitudesOpen] = useState(false);
+  const [selectedVacancy, setSelectedVacancy] = useState<any>(null);
+  const vacantesActivas = [
+    { id: 1, title: 'Desarrollador Frontend React', area: 'Desarrollo', applicants: 8, slots: 3, filled: 2, status: 'active', location: 'Monterrey', hours: 480 },
+    { id: 2, title: 'Analista de Datos', area: 'Análisis', applicants: 5, slots: 2, filled: 2, status: 'filled', location: 'CDMX', hours: 480 },
+    { id: 3, title: 'Diseñador UI/UX', area: 'Diseño', applicants: 12, slots: 2, filled: 1, status: 'active', location: 'Guadalajara', hours: 480 },
+    { id: 4, title: 'Soporte Técnico', area: 'Soporte', applicants: 3, slots: 4, filled: 0, status: 'active', location: 'Querétaro', hours: 480 },
+  ];
+
+  const vacantesCerradas = [
+    { id: 5, title: 'Administrador de Bases de Datos', area: 'Infraestructura', applicants: 6, slots: 2, filled: 2, status: 'closed' },
+    { id: 6, title: 'Tester QA', area: 'Calidad', applicants: 4, slots: 1, filled: 1, status: 'closed' },
+  ];
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar userType="empresa" onNavigate={onNavigate} currentView="vacantes-empresa" />
+
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Mis Vacantes</h1>
+              <p className="text-muted-foreground">Gestiona las oportunidades de servicio social</p>
+            </div>
+            <Button onClick={() => setModalNuevaOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Vacante
+            </Button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Briefcase className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mb-1">{vacantesActivas.length}</p>
+                <p className="text-sm text-muted-foreground">Vacantes Activas</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-secondary" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mb-1">
+                  {vacantesActivas.reduce((acc, v) => acc + v.applicants, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">Solicitudes Totales</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-accent" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mb-1">
+                  {vacantesActivas.reduce((acc, v) => acc + v.filled, 0)}/
+                  {vacantesActivas.reduce((acc, v) => acc + v.slots, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">Cupos Ocupados</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold mb-1">
+                  {Math.round((vacantesActivas.reduce((acc, v) => acc + v.filled, 0) /
+                    vacantesActivas.reduce((acc, v) => acc + v.slots, 0)) * 100)}%
+                </p>
+                <p className="text-sm text-muted-foreground">Tasa de Ocupación</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Active Vacancies */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />
+                    Vacantes Activas
+                  </CardTitle>
+                  <CardDescription>Oportunidades abiertas a postulaciones</CardDescription>
+                </div>
+                <Button variant="outline" size="sm">Ver Estadísticas</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {vacantesActivas.map((vacancy) => (
+                  <div key={vacancy.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Briefcase className="w-6 h-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-1">{vacancy.title}</h3>
+                            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Briefcase className="w-4 h-4" />
+                                {vacancy.area}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {vacancy.location}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {vacancy.hours} hrs
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {vacancy.status === 'filled' ? (
+                          <Badge variant="success">Cupo Lleno</Badge>
+                        ) : (
+                          <Badge variant="default">Activa</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Solicitudes</p>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-primary" />
+                          <span className="font-semibold">{vacancy.applicants} postulaciones</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Cupos</p>
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-secondary" />
+                          <span className="font-semibold">{vacancy.filled} / {vacancy.slots} ocupados</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 mt-2">
+                          <div
+                            className="bg-secondary h-2 rounded-full"
+                            style={{ width: `${(vacancy.filled / vacancy.slots) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Ocupación</p>
+                        <span className="text-2xl font-bold text-primary">
+                          {Math.round((vacancy.filled / vacancy.slots) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVacancy(vacancy);
+                          setModalSolicitudesOpen(true);
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Solicitudes ({vacancy.applicants})
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Estadísticas
+                      </Button>
+                      {vacancy.status !== 'filled' && (
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Cerrar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Closed Vacancies */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5" />
+                Vacantes Cerradas
+              </CardTitle>
+              <CardDescription>Historial de oportunidades completadas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {vacantesCerradas.map((vacancy) => (
+                  <div key={vacancy.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{vacancy.title}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {vacancy.area} • {vacancy.applicants} solicitudes • {vacancy.filled}/{vacancy.slots} cupos
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">Cerrada</Badge>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      {/* Modales */}
+      <ModalNuevaVacante
+        isOpen={modalNuevaOpen}
+        onClose={() => setModalNuevaOpen(false)}
+      />
+
+      {selectedVacancy && (
+        <ModalSolicitudes
+          isOpen={modalSolicitudesOpen}
+          onClose={() => {
+            setModalSolicitudesOpen(false);
+            setSelectedVacancy(null);
+          }}
+          vacancy={selectedVacancy}
+        />
+      )}
+    </div>
+  );
+}
