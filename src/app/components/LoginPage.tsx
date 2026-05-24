@@ -4,16 +4,90 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
+import supabase from '../lib/supabase'
+
 export default function LoginPage({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [activeTab, setActiveTab] = useState<'alumno' | 'empresa' | 'admin'>('alumno');
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = () => {
-    if (activeTab === 'alumno') onNavigate('dashboard-alumno');
-    else if (activeTab === 'empresa') onNavigate('dashboard-empresa');
-    else onNavigate('dashboard-admin');
-  };
+  // Authenticate or register with Supabase and redirect by role
+  const handleSubmit = async () => {
+    setLoading(true)
+    try {
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+
+        const user = data.user
+        if (!user) throw new Error('No user returned from Supabase')
+
+        const { data: profile, error: pErr } = await supabase
+          .from('profiles')
+          .select('rol')
+          .eq('id', user.id)
+          .single()
+
+        if (pErr) {
+          console.warn('profiles lookup failed:', pErr.message)
+        }
+
+        const role = profile?.rol || 'alumno'
+        if (role === 'alumno') onNavigate('dashboard-alumno')
+        else if (role === 'empresa') onNavigate('dashboard-empresa')
+        else onNavigate('dashboard-admin')
+        return
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            rol: activeTab,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      const user = data.user
+      if (data.session && user) {
+        const { data: profile, error: pErr } = await supabase
+          .from('profiles')
+          .select('rol')
+          .eq('id', user.id)
+          .single()
+
+        if (pErr) {
+          console.warn('profiles lookup failed:', pErr.message)
+        }
+
+        const role = profile?.rol || 'alumno'
+        if (role === 'alumno') onNavigate('dashboard-alumno')
+        else if (role === 'empresa') onNavigate('dashboard-empresa')
+        else onNavigate('dashboard-admin')
+      } else {
+        alert('Cuenta creada. Confirma tu correo para completar el registro y luego inicia sesión.')
+        setIsLogin(true)
+      }
+    } catch (err: any) {
+      if (!isLogin && String(err?.message || '').toLowerCase().includes('user returned from supabase')) {
+        alert('Cuenta creada. Confirma tu correo para completar el registro y luego inicia sesión.')
+        setIsLogin(true)
+        return
+      }
+
+      alert(err.message || 'Error iniciando sesión')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -100,13 +174,13 @@ export default function LoginPage({ onNavigate }: { onNavigate: (view: string) =
             </div>
 
             {/* Form */}
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               {!isLogin && (
                 <div>
                   <label className="text-sm font-medium mb-2 block">Nombre Completo</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input className="pl-10" placeholder="Juan Pérez" />
+                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10" placeholder="Juan Pérez" />
                   </div>
                 </div>
               )}
@@ -115,7 +189,7 @@ export default function LoginPage({ onNavigate }: { onNavigate: (view: string) =
                 <label className="text-sm font-medium mb-2 block">Correo Electrónico</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="email" className="pl-10" placeholder="correo@ejemplo.com" />
+                  <Input value={email} onChange={(e: any) => setEmail(e.target.value)} type="email" className="pl-10" placeholder="correo@ejemplo.com" />
                 </div>
               </div>
 
@@ -124,6 +198,8 @@ export default function LoginPage({ onNavigate }: { onNavigate: (view: string) =
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
+                    value={password}
+                    onChange={(e: any) => setPassword(e.target.value)}
                     type={showPassword ? "text" : "password"}
                     className="pl-10 pr-10"
                     placeholder="••••••••"
@@ -150,8 +226,8 @@ export default function LoginPage({ onNavigate }: { onNavigate: (view: string) =
                 </div>
               )}
 
-              <Button type="submit" className="w-full">
-                {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Procesando...' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </Button>
 
               <div className="text-center text-sm">

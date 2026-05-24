@@ -10,3 +10,10 @@ supabase/functions/**/.env
 
 # Sensitive service accounts or keys
 supabase/functions/service-account.json
+
+# Node modules and build artifacts
+node_modules/
+dist/
+build/
+
+

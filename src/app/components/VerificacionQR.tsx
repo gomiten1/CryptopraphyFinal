@@ -1,12 +1,107 @@
-import { QrCode, CheckCircle2, Shield, User, Calendar, Scan, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { QrCode, CheckCircle2, Shield, User, Calendar, Scan, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import Sidebar from "./Sidebar";
-import { useState } from "react";
+import supabase from "../lib/supabase";
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  rol: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+type QrPayload = {
+  token: string;
+};
 
 export default function VerificacionQR({ onNavigate }: { onNavigate: (view: string) => void }) {
-  const [isVerified, setIsVerified] = useState(true);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [empresaId, setEmpresaId] = useState('');
+  const [token, setToken] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoadingProfile(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (!userId) {
+        setError('No hay sesión activa. Inicia sesión para generar tu QR.');
+        setLoadingProfile(false);
+        return;
+      }
+
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, rol, metadata')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        setError(profileError.message);
+      } else {
+        setProfile(data as ProfileRow);
+      }
+
+      setLoadingProfile(false);
+    };
+
+    loadProfile();
+  }, []);
+
+  const qrPattern = useMemo(() => {
+    const source = token || profile?.id || 'qr';
+    return Array.from({ length: 64 }, (_, index) => {
+      const charCode = source.charCodeAt(index % source.length) || 31;
+      return (charCode + index) % 3 === 0;
+    });
+  }, [token, profile?.id]);
+
+  const handleGenerateQr = async () => {
+    setGenerating(true);
+    setError(null);
+
+    try {
+      const alumnoId = profile?.id;
+      if (!alumnoId) {
+        throw new Error('No se encontró tu perfil de alumno.');
+      }
+
+      if (!empresaId.trim()) {
+        throw new Error('Ingresa el ID de la empresa receptora.');
+      }
+
+      const { data, error: invokeError } = await supabase.functions.invoke<QrPayload>('crypto-qr', {
+        body: {
+          alumno_id: alumnoId,
+          empresa_id: empresaId.trim(),
+        },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      if (!data?.token) {
+        throw new Error('La función no devolvió un token válido.');
+      }
+
+      setToken(data.token);
+      setGeneratedAt(new Date().toLocaleString('es-MX'));
+    } catch (invokeError) {
+      setError(invokeError instanceof Error ? invokeError.message : 'No se pudo generar el QR');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -19,6 +114,12 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
             <h1 className="text-3xl font-bold mb-2">Mi Código QR Seguro</h1>
             <p className="text-muted-foreground">Identificación verificable con criptografía</p>
           </div>
+
+          {error && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+              {error}
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-2 gap-6">
             {/* QR Code Display */}
@@ -37,11 +138,11 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                     <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-lg flex items-center justify-center relative overflow-hidden">
                       {/* QR Pattern Simulation */}
                       <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 gap-1 p-4">
-                        {Array.from({ length: 64 }).map((_, i) => (
+                        {qrPattern.map((active, i) => (
                           <div
                             key={i}
                             className={`rounded-sm ${
-                              Math.random() > 0.5 ? 'bg-foreground' : 'bg-transparent'
+                              active ? 'bg-foreground' : 'bg-transparent'
                             }`}
                           />
                         ))}
@@ -54,56 +155,60 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
 
                   {/* Status Badge */}
                   <div className="absolute top-4 right-4">
-                    {isVerified ? (
-                      <Badge variant="success" className="gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Activo
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive" className="gap-1">
-                        <XCircle className="w-3 h-3" />
-                        Inactivo
-                      </Badge>
-                    )}
+                    <Badge variant={token ? 'success' : 'secondary'} className="gap-1">
+                      {token ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                      {token ? 'QR generado' : 'Pendiente'}
+                    </Badge>
                   </div>
                 </div>
 
                 {/* QR Info */}
                 <div className="space-y-4">
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Hash de Verificación</p>
-                    <p className="font-mono text-sm break-all">
-                      a3f8b2c9e1d4f7a5b8c3d9e6f2a7b4c1e8d5f9a3b7c2e6f1d8a4b9c5e2f7a1b4
+                    <p className="text-sm text-muted-foreground mb-2">Token cifrado</p>
+                    <p className="font-mono text-xs break-all min-h-10">
+                      {token || 'Genera el QR para ver aquí el token cifrado.'}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Generado</p>
-                      <p className="font-medium">18 May 2026</p>
+                      <p className="font-medium">{generatedAt || 'Pendiente'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Expira</p>
-                      <p className="font-medium">18 Jun 2026</p>
+                      <p className="text-sm text-muted-foreground mb-1">Empresa receptora</p>
+                      <p className="font-medium break-all">{empresaId || 'No definida'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Verificaciones</p>
-                      <p className="font-medium">47 veces</p>
+                      <p className="text-sm text-muted-foreground mb-1">Alumno</p>
+                      <p className="font-medium break-all">{profile?.full_name || profile?.id || 'Cargando...'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Última verificación</p>
-                      <p className="font-medium">Hace 2 horas</p>
+                      <p className="text-sm text-muted-foreground mb-1">Estado</p>
+                      <p className="font-medium">{token ? 'Listo para escanear' : 'Sin generar'}</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button className="flex-1">
-                      <Scan className="w-4 h-4 mr-2" />
-                      Escanear
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      Regenerar
-                    </Button>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">ID de la empresa receptora</p>
+                      <Input
+                        value={empresaId}
+                        onChange={(e) => setEmpresaId(e.target.value)}
+                        placeholder="UUID de la empresa"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button className="flex-1" onClick={handleGenerateQr} disabled={generating || loadingProfile}>
+                        {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scan className="w-4 h-4 mr-2" />}
+                        Generar QR cifrado
+                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={handleGenerateQr} disabled={generating || loadingProfile}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Regenerar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -134,19 +239,19 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Carrera:</span>
-                      <span className="font-medium">Ing. en Sistemas</span>
+                      <span className="font-medium">{profile?.metadata?.career ? String(profile.metadata.career) : 'Ing. en Sistemas'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Semestre:</span>
-                      <span className="font-medium">8vo Semestre</span>
+                      <span className="font-medium">{profile?.metadata?.semester ? String(profile.metadata.semester) : '8vo Semestre'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Empresa:</span>
-                      <span className="font-medium">TechCorp</span>
+                      <span className="font-medium break-all">{empresaId || 'Pendiente de selección'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Estado:</span>
-                      <Badge variant="success">Activo</Badge>
+                      <Badge variant={token ? 'success' : 'secondary'}>{token ? 'Activo' : 'Pendiente'}</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -165,28 +270,24 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Algoritmo</p>
-                      <Badge>HMAC-SHA256</Badge>
+                      <Badge>AES-256-GCM</Badge>
                     </div>
 
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Clave Pública</p>
+                      <p className="text-sm text-muted-foreground mb-2">Contenido cifrado</p>
                       <div className="p-3 bg-muted rounded-lg">
-                        <p className="font-mono text-xs break-all">
-                          -----BEGIN PUBLIC KEY-----
-                          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...
-                          -----END PUBLIC KEY-----
-                        </p>
+                        <p className="font-mono text-xs break-all">{token || 'Aquí aparecerá el payload cifrado generado por crypto-qr.'}</p>
                       </div>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Timestamp</p>
-                      <p className="font-mono text-sm">1716040500000</p>
+                      <p className="font-mono text-sm">{generatedAt || 'Pendiente'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Nonce</p>
-                      <p className="font-mono text-sm">9c3e7f2d6a8b4c1a9e</p>
+                      <p className="font-mono text-sm">{token ? token.split('.')[0] : 'Pendiente'}</p>
                     </div>
                   </div>
                 </CardContent>

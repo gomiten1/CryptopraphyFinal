@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import supabase from './lib/supabase'
 import FeriaLanding from './components/FeriaLanding';
 import CatalogoProyectos from './components/CatalogoProyectos';
 import FormularioRegistro from './components/FormularioRegistro';
@@ -33,6 +34,45 @@ export default function App() {
 
     setCurrentView(view);
   };
+
+  // Listen for Supabase auth changes and fetch profile role
+  useEffect(() => {
+    let mounted = true
+
+    const fetchProfileAndRedirect = async (uid: string | null) => {
+      if (!uid) return
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('rol')
+        .eq('id', uid)
+        .single()
+
+      const role = profile?.rol as 'alumno' | 'empresa' | 'admin' | null
+      if (!mounted) return
+      setUserType(role || null)
+
+      if (role === 'alumno') setCurrentView('dashboard-alumno')
+      else if (role === 'empresa') setCurrentView('dashboard-empresa')
+      else if (role === 'admin') setCurrentView('dashboard-admin')
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetchProfileAndRedirect(session?.user?.id ?? null)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) fetchProfileAndRedirect(session.user.id)
+      else {
+        setUserType(null)
+        setCurrentView('landing')
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const renderView = () => {
     switch (currentView) {

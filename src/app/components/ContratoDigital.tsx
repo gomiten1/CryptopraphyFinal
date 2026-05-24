@@ -1,10 +1,125 @@
-import { FileCheck, Download, Shield, CheckCircle2, Calendar, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileCheck, Download, Shield, CheckCircle2, Calendar, User, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import Sidebar from "./Sidebar";
+import supabase from "../lib/supabase";
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  rol: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+type ContractResult = {
+  record?: {
+    id: string;
+    alumno_id: string;
+    empresa_id: string;
+    json_datos: Record<string, unknown>;
+    hash_sha256: string;
+    firma_digital: string;
+    creado_en: string;
+  };
+  verification?: {
+    hash_sha256: string;
+    firma_digital: string;
+    algorithm: string;
+  };
+  error?: string;
+};
 
 export default function ContratoDigital({ onNavigate }: { onNavigate: (view: string) => void }) {
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [signing, setSigning] = useState(false);
+  const [empresaId, setEmpresaId] = useState('');
+  const [hours, setHours] = useState('4');
+  const [activity, setActivity] = useState('Asistencia y registro de actividades');
+  const [notes, setNotes] = useState('');
+  const [signedAt, setSignedAt] = useState<string | null>(null);
+  const [result, setResult] = useState<ContractResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoadingProfile(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (!userId) {
+        setError('No hay sesión activa. Inicia sesión para firmar el contrato.');
+        setLoadingProfile(false);
+        return;
+      }
+
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, rol, metadata')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        setError(profileError.message);
+      } else {
+        setProfile(data as ProfileRow);
+      }
+
+      setLoadingProfile(false);
+    };
+
+    loadProfile();
+  }, []);
+
+  const handleSignContract = async () => {
+    setSigning(true);
+    setError(null);
+
+    try {
+      if (!profile?.id) {
+        throw new Error('No se encontró tu perfil de alumno.');
+      }
+
+      if (!empresaId.trim()) {
+        throw new Error('Ingresa el ID de la empresa receptora.');
+      }
+
+      const { data, error: invokeError } = await supabase.functions.invoke<ContractResult>('sign-contract', {
+        body: {
+          alumno_id: profile.id,
+          empresa_id: empresaId.trim(),
+          json_datos: {
+            alumno_id: profile.id,
+            alumno_nombre: profile.full_name,
+            empresa_id: empresaId.trim(),
+            horas: Number(hours) || 0,
+            actividad,
+            notas: notes,
+            firmado_en: new Date().toISOString(),
+          },
+        },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      setResult(data ?? null);
+      setSignedAt(new Date().toLocaleString('es-MX'));
+    } catch (invokeError) {
+      setError(invokeError instanceof Error ? invokeError.message : 'No se pudo firmar el contrato');
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  const contractHash = result?.verification?.hash_sha256 || result?.record?.hash_sha256 || 'Pendiente';
+  const contractSignature = result?.verification?.firma_digital || result?.record?.firma_digital || 'Pendiente';
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar userType="alumno" onNavigate={onNavigate} currentView="contrato" />
@@ -17,6 +132,12 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
             <p className="text-muted-foreground">Documento firmado con validación criptográfica</p>
           </div>
 
+          {error && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+              {error}
+            </div>
+          )}
+
           {/* Status Card */}
           <Card className="mb-8 border-green-200 bg-green-50">
             <CardContent className="p-6">
@@ -25,22 +146,24 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   <CheckCircle2 className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-green-900 mb-1">Contrato Verificado</h3>
+                  <h3 className="font-semibold text-green-900 mb-1">{result ? 'Contrato Registrado' : 'Contrato Verificado'}</h3>
                   <p className="text-sm text-green-700 mb-4">
-                    Este documento ha sido firmado digitalmente y su autenticidad ha sido verificada mediante blockchain
+                    {result
+                      ? 'El evento fue firmado digitalmente y guardado en contratos_eventos.'
+                      : 'Este documento ha sido firmado digitalmente y su autenticidad ha sido verificada mediante blockchain'}
                   </p>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-xs text-green-700 mb-1">Firmado el:</p>
-                      <p className="font-medium text-green-900">18 Mayo 2026, 14:35</p>
+                      <p className="font-medium text-green-900">{signedAt || 'Pendiente'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-green-700 mb-1">Método:</p>
-                      <p className="font-medium text-green-900">RSA-2048 + SHA-256</p>
+                      <p className="font-medium text-green-900">SHA-256 + HMAC-SHA256</p>
                     </div>
                     <div>
                       <p className="text-xs text-green-700 mb-1">Estado:</p>
-                      <Badge variant="success">Válido</Badge>
+                      <Badge variant={result ? 'success' : 'secondary'}>{result ? 'Válido' : 'Pendiente'}</Badge>
                     </div>
                   </div>
                 </div>
@@ -56,7 +179,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   <FileCheck className="w-5 h-5" />
                   Vista Previa del Contrato
                 </CardTitle>
-                <CardDescription>Convenio de Servicio Social Universitario</CardDescription>
+                <CardDescription>Convenio de Servicio Social Universitario vinculado al perfil actual</CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Simulated PDF Preview */}
@@ -72,19 +195,19 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       <div className="grid grid-cols-2 gap-3 pl-4">
                         <div>
                           <p className="text-muted-foreground text-xs">Nombre:</p>
-                          <p>Juan Pérez Martínez</p>
+                          <p>{profile?.full_name || 'Cargando...'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Matrícula:</p>
-                          <p>A2021001234</p>
+                          <p>{profile?.id || 'Pendiente'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Carrera:</p>
-                          <p>Ingeniería en Sistemas</p>
+                          <p>{profile?.metadata?.career ? String(profile.metadata.career) : 'Ingeniería en Sistemas'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Semestre:</p>
-                          <p>8vo Semestre</p>
+                          <p>{profile?.metadata?.semester ? String(profile.metadata.semester) : '8vo Semestre'}</p>
                         </div>
                       </div>
 
@@ -93,19 +216,19 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                         <div className="grid grid-cols-2 gap-3 pl-4 mt-2">
                           <div>
                             <p className="text-muted-foreground text-xs">Razón Social:</p>
-                            <p>TechCorp S.A. de C.V.</p>
+                            <p>{empresaId || 'Pendiente'}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">RFC:</p>
-                            <p>TEC123456ABC</p>
+                            <p>{profile?.metadata?.company_rfc ? String(profile.metadata.company_rfc) : 'Pendiente'}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">Área:</p>
-                            <p>Desarrollo de Software</p>
+                            <p>{activity}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">Supervisor:</p>
-                            <p>Ing. María Rodríguez</p>
+                            <p>{profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Pendiente'}</p>
                           </div>
                         </div>
                       </div>
@@ -113,20 +236,18 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       <div className="border-t pt-4 mt-4">
                         <p className="font-medium">PERIODO Y HORARIO</p>
                         <div className="pl-4 mt-2 space-y-2">
-                          <p><span className="text-muted-foreground">Inicio:</span> 15 Enero 2024</p>
-                          <p><span className="text-muted-foreground">Término:</span> 15 Julio 2024</p>
-                          <p><span className="text-muted-foreground">Total de Horas:</span> 480 horas</p>
-                          <p><span className="text-muted-foreground">Horario:</span> Lunes a Viernes, 9:00 - 14:00 hrs</p>
+                          <p><span className="text-muted-foreground">Inicio:</span> {profile?.metadata?.start_date ? String(profile.metadata.start_date) : 'Pendiente'}</p>
+                          <p><span className="text-muted-foreground">Término:</span> {profile?.metadata?.end_date ? String(profile.metadata.end_date) : 'Pendiente'}</p>
+                          <p><span className="text-muted-foreground">Total de Horas:</span> {hours} horas</p>
+                          <p><span className="text-muted-foreground">Horario:</span> {profile?.metadata?.schedule ? String(profile.metadata.schedule) : 'Lunes a Viernes, 9:00 - 14:00 hrs'}</p>
                         </div>
                       </div>
 
                       <div className="border-t pt-4 mt-4">
                         <p className="font-medium">ACTIVIDADES A REALIZAR</p>
                         <ul className="pl-8 mt-2 space-y-1 list-disc">
-                          <li>Desarrollo de componentes frontend con React</li>
-                          <li>Implementación de interfaces de usuario</li>
-                          <li>Pruebas y documentación de código</li>
-                          <li>Colaboración en proyectos del equipo</li>
+                          <li>{activity}</li>
+                          <li>{notes || 'Sin observaciones adicionales'}</li>
                         </ul>
                       </div>
 
@@ -140,14 +261,46 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   </div>
                 </div>
 
+                <div className="grid md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">ID de la empresa receptora</p>
+                    <Input value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} placeholder="UUID de la empresa" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Horas registradas</p>
+                    <Input value={hours} onChange={(e) => setHours(e.target.value)} type="number" min="1" max="12" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground mb-2">Actividad</p>
+                    <Input value={activity} onChange={(e) => setActivity(e.target.value)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground mb-2">Notas</p>
+                    <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Observaciones del evento, asistencia, etc." />
+                  </div>
+                </div>
+
+                {result?.verification && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-900">Contrato registrado correctamente</span>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <p><span className="text-green-700">Hash SHA-256:</span> <span className="font-mono text-xs break-all">{contractHash}</span></p>
+                      <p><span className="text-green-700">Firma digital:</span> <span className="font-mono text-xs break-all">{contractSignature}</span></p>
+                      <p><span className="text-green-700">Algoritmo:</span> {result.verification.algorithm}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-3 mt-6">
-                  <Button className="flex-1">
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar PDF Original
+                  <Button className="flex-1" onClick={handleSignContract} disabled={signing || loadingProfile}>
+                    {signing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    {signing ? 'Firmando...' : 'Firmar y registrar'}
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={handleSignContract} disabled={signing || loadingProfile}>
                     <Shield className="w-4 h-4 mr-2" />
-                    Verificar Firma
+                    Validar firma
                   </Button>
                 </div>
               </CardContent>
@@ -167,13 +320,13 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Algoritmo</p>
-                      <Badge>RSA-2048</Badge>
+                      <Badge>SHA-256 + HMAC-SHA256</Badge>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Hash SHA-256</p>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="font-mono text-xs break-all">
-                          7d9f3a8e2b4c1f6d8e5a9b2c4f1e3d7a9b4c2e6f8d1a5b9c3e7f2d6a8b4c1a9e
+                          {contractHash}
                         </p>
                       </div>
                     </div>
@@ -181,7 +334,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       <p className="text-sm text-muted-foreground mb-2">Blockchain TX</p>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="font-mono text-xs break-all">
-                          0x4f2a9c8e...3b7d1f4a
+                          {result?.record?.id || 'Pendiente'}
                         </p>
                       </div>
                     </div>
@@ -215,8 +368,8 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                         <User className="w-5 h-5 text-secondary" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium">Ing. María Rodríguez</p>
-                        <p className="text-xs text-muted-foreground">TechCorp - Supervisor</p>
+                        <p className="font-medium">{profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Supervisor de empresa'}</p>
+                        <p className="text-xs text-muted-foreground">{empresaId || 'Empresa receptora'}</p>
                         <div className="flex items-center gap-1 mt-1">
                           <CheckCircle2 className="w-3 h-3 text-green-600" />
                           <span className="text-xs text-green-600">Verificado</span>
@@ -229,8 +382,8 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                         <User className="w-5 h-5 text-accent" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium">Dr. Luis García</p>
-                        <p className="text-xs text-muted-foreground">Universidad - Coordinador</p>
+                        <p className="font-medium">Coordinación universitaria</p>
+                        <p className="text-xs text-muted-foreground">Registro automático al firmar</p>
                         <div className="flex items-center gap-1 mt-1">
                           <CheckCircle2 className="w-3 h-3 text-green-600" />
                           <span className="text-xs text-green-600">Verificado</span>
