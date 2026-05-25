@@ -23,6 +23,7 @@ export default function Sidebar({ userType, onNavigate, currentView }: SidebarPr
       { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard-empresa' },
       { icon: Briefcase, label: 'Mis Vacantes', view: 'vacantes-empresa' },
       { icon: User, label: 'Alumnos', view: 'alumnos-empresa' },
+      { icon: QrCode, label: 'Validar QR', view: 'qr-validacion-empresa' },
       { icon: Settings, label: 'Configuración', view: 'settings' },
     ],
     admin: [

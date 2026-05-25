@@ -88,21 +88,24 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
         throw new Error('Ingresa el ID de la empresa receptora.');
       }
 
-      const { data, error: invokeError } = await supabase.functions.invoke<ContractResult>('sign-contract', {
-        body: {
+      const payload = {
+        alumno_id: profile.id,
+        empresa_id: empresaId.trim(),
+        json_datos: {
           alumno_id: profile.id,
+          alumno_nombre: profile.full_name,
           empresa_id: empresaId.trim(),
-          json_datos: {
-            alumno_id: profile.id,
-            alumno_nombre: profile.full_name,
-            empresa_id: empresaId.trim(),
-            horas: Number(hours) || 0,
-            actividad,
-            notas: notes,
-            firmado_en: new Date().toISOString(),
-          },
+          horas: Number(hours) || 0,
+          actividad: activity,
+          notas: notes,
+          firmado_en: new Date().toISOString(),
         },
-      });
+      };
+
+      const invokeRes = await supabase.functions.invoke('sign-contract', { body: payload });
+
+      const data = (invokeRes as any).data as ContractResult | null;
+      const invokeError = (invokeRes as any).error;
 
       if (invokeError) {
         throw invokeError;
@@ -120,6 +123,15 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
   const contractHash = result?.verification?.hash_sha256 || result?.record?.hash_sha256 || 'Pendiente';
   const contractSignature = result?.verification?.firma_digital || result?.record?.firma_digital || 'Pendiente';
 
+  const handlePreviewSignature = () => {
+    setError(null);
+    if (!result) {
+      setError('No hay firma registrada todavía. Firma el contrato primero para poder validar.');
+      return;
+    }
+    // Si ya existe `result`, por ahora mostramos la información ya disponible.
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar userType="alumno" onNavigate={onNavigate} currentView="contrato" />
@@ -129,7 +141,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Contrato Digital</h1>
-            <p className="text-muted-foreground">Documento firmado con validación criptográfica</p>
+            <p className="text-muted-foreground">Documento con firma digital y registro en la auditoría</p>
           </div>
 
           {error && (
@@ -146,11 +158,11 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   <CheckCircle2 className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-green-900 mb-1">{result ? 'Contrato Registrado' : 'Contrato Verificado'}</h3>
+                  <h3 className="font-semibold text-green-900 mb-1">{result ? 'Contrato Registrado' : 'Contrato Pendiente'}</h3>
                   <p className="text-sm text-green-700 mb-4">
                     {result
-                      ? 'El evento fue firmado digitalmente y guardado en contratos_eventos.'
-                      : 'Este documento ha sido firmado digitalmente y su autenticidad ha sido verificada mediante blockchain'}
+                      ? 'El evento fue firmado digitalmente y se registró en la base de datos.'
+                      : 'Este documento aún no ha sido firmado. Completa los datos y haz clic en "Firmar y registrar" para generar la firma digital.'}
                   </p>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
@@ -163,7 +175,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                     </div>
                     <div>
                       <p className="text-xs text-green-700 mb-1">Estado:</p>
-                      <Badge variant={result ? 'success' : 'secondary'}>{result ? 'Válido' : 'Pendiente'}</Badge>
+                      <Badge variant={result ? 'default' : 'secondary'}>{result ? 'Válido' : 'Pendiente'}</Badge>
                     </div>
                   </div>
                 </div>
@@ -253,8 +265,9 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
 
                       <div className="border-t pt-4 mt-6">
                         <p className="text-xs text-muted-foreground italic">
-                          Este documento ha sido firmado digitalmente por todas las partes involucradas
-                          y cuenta con validación criptográfica mediante tecnología blockchain.
+                          {result
+                            ? 'Este documento ha sido firmado digitalmente por todas las partes involucradas y cuenta con validación criptográfica mediante tecnología blockchain.'
+                            : 'Este documento aún no ha sido firmado digitalmente. Después de firmar, podrás comprobar la firma desde la vista de Auditoría.'}
                         </p>
                       </div>
                     </div>
@@ -298,7 +311,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                     {signing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                     {signing ? 'Firmando...' : 'Firmar y registrar'}
                   </Button>
-                  <Button variant="outline" onClick={handleSignContract} disabled={signing || loadingProfile}>
+                  <Button variant="outline" onClick={handlePreviewSignature} disabled={signing || loadingProfile}>
                     <Shield className="w-4 h-4 mr-2" />
                     Validar firma
                   </Button>

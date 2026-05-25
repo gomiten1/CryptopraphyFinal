@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.106.0'
-import { asRecord, corsHeaders, hmacSha256Hex, jsonResponse, requireEnv, sha256Hex, tryParseJson } from '../_shared/crypto.ts'
+import { asRecord, corsHeaders, hmacSha256Hex, jsonResponse, requireEnv, sha256Hex, stringifyContractPayload, tryParseJson } from '../_shared/crypto.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,7 +26,7 @@ serve(async (req) => {
       return jsonResponse({ error: 'alumno_id, empresa_id and json_datos are required' }, { status: 400 })
     }
 
-    const jsonString = JSON.stringify(json_datos)
+    const jsonString = stringifyContractPayload(json_datos)
     const hash_sha256 = await sha256Hex(jsonString)
     const firma_digital = await hmacSha256Hex(hash_sha256, signatureSecret)
 

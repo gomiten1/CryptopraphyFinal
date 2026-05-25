@@ -106,3 +106,54 @@ export function asRecord(value: unknown): Record<string, unknown> {
 
   return value as Record<string, unknown>
 }
+
+function serializeValue(value: unknown, preferredKeyOrder: string[]): string {
+  if (value === null) {
+    return 'null'
+  }
+
+  const valueType = typeof value
+
+  if (valueType === 'string') {
+    return JSON.stringify(value)
+  }
+
+  if (valueType === 'number') {
+    return Number.isFinite(value as number) ? String(value) : 'null'
+  }
+
+  if (valueType === 'boolean') {
+    return value ? 'true' : 'false'
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => serializeValue(item, preferredKeyOrder)).join(',')}]`
+  }
+
+  if (valueType === 'object') {
+    const record = value as Record<string, unknown>
+    const keys = Object.keys(record)
+    const orderedKeys = [
+      ...preferredKeyOrder.filter((key) => keys.includes(key)),
+      ...keys.filter((key) => !preferredKeyOrder.includes(key)).sort(),
+    ]
+
+    return `{${orderedKeys
+      .map((key) => `${JSON.stringify(key)}:${serializeValue(record[key], preferredKeyOrder)}`)
+      .join(',')}}`
+  }
+
+  return 'null'
+}
+
+export function stringifyContractPayload(value: unknown): string {
+  return serializeValue(value, [
+    'alumno_id',
+    'alumno_nombre',
+    'empresa_id',
+    'horas',
+    'actividad',
+    'notas',
+    'firmado_en',
+  ])
+}

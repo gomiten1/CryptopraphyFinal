@@ -248,6 +248,10 @@ export default function DashboardEmpresa({ onNavigate }: { onNavigate: (view: st
                     <Briefcase className="w-4 h-4 mr-2" />
                     Ver Estadísticas
                   </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => onNavigate('qr-validacion-empresa')}>
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Validar QR de Alumno
+                  </Button>
                 </CardContent>
               </Card>
             </div>

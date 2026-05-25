@@ -14,6 +14,7 @@ import VacantesAlumno from './components/VacantesAlumno';
 import ConfiguracionAlumno from './components/ConfiguracionAlumno';
 import AlumnosEmpresa from './components/AlumnosEmpresa';
 import VacantesEmpresa from './components/VacantesEmpresa';
+import ValidarQrEmpresa from './components/ValidarQrEmpresa';
 import ConfiguracionEmpresa from './components/ConfiguracionEmpresa';
 import EstadisticasEmpresa from './components/EstadisticasEmpresa';
 import AlumnosAdmin from './components/AlumnosAdmin';
@@ -107,6 +108,8 @@ export default function App() {
         return <AlumnosEmpresa onNavigate={handleNavigate} />;
       case 'vacantes-empresa':
         return <VacantesEmpresa onNavigate={handleNavigate} />;
+      case 'qr-validacion-empresa':
+        return <ValidarQrEmpresa onNavigate={handleNavigate} />;
       case 'estadisticas-empresa':
         return <EstadisticasEmpresa onNavigate={handleNavigate} />;
 

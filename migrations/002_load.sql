@@ -19,12 +19,44 @@ begin
     limit 1;
   exception
     when undefined_table then
-      raise exception 'Auth no está activo todavía: falta auth.instances. Activa Authentication en Supabase antes de correr este script.';
+      raise exception 'Auth schema no está disponible: falta auth.instances. Activa Authentication en Supabase antes de correr este script.';
   end;
 
   if v_instance_id is null then
-    raise exception 'No auth.instances row found. Activa Authentication en Supabase antes de correr este script.';
+    begin
+      insert into auth.instances default values
+      returning id into v_instance_id;
+    exception
+      when undefined_column or not_null_violation or foreign_key_violation or check_violation then
+        v_instance_id := gen_random_uuid();
+        insert into auth.instances (id)
+        values (v_instance_id)
+        on conflict (id) do nothing;
+    end;
   end if;
+
+  if v_instance_id is null then
+    raise exception 'No fue posible crear o detectar una fila en auth.instances.';
+  end if;
+
+  -- Reemplazar cuentas semilla para garantizar contraseña y metadata correctas en cada ejecución
+  delete from auth.users
+  where email in (
+    'alumno1@servicioseguro.test',
+    'alumno2@servicioseguro.test',
+    'universidad@servicioseguro.test',
+    'empresa1@servicioseguro.test',
+    'empresa2@servicioseguro.test'
+  );
+
+  delete from auth.identities
+  where user_id in (
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
+    '33333333-3333-3333-3333-333333333333',
+    '44444444-4444-4444-4444-444444444444',
+    '55555555-5555-5555-5555-555555555555'
+  );
 
   -- Usuarios de prueba en Auth (preconfirmados para poder iniciar sesión de inmediato)
   insert into auth.users (
@@ -148,7 +180,115 @@ begin
       null,
       null
     )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    instance_id = excluded.instance_id,
+    aud = excluded.aud,
+    role = excluded.role,
+    email = excluded.email,
+    encrypted_password = excluded.encrypted_password,
+    email_confirmed_at = excluded.email_confirmed_at,
+    raw_app_meta_data = excluded.raw_app_meta_data,
+    raw_user_meta_data = excluded.raw_user_meta_data,
+    updated_at = excluded.updated_at,
+    confirmation_token = excluded.confirmation_token,
+    recovery_token = excluded.recovery_token,
+    email_change_token_new = excluded.email_change_token_new,
+    email_change = excluded.email_change,
+    email_change_sent_at = excluded.email_change_sent_at,
+    recovery_sent_at = excluded.recovery_sent_at,
+    last_sign_in_at = excluded.last_sign_in_at;
+
+  insert into auth.identities (
+    id,
+    user_id,
+    provider,
+    provider_id,
+    identity_data,
+    last_sign_in_at,
+    created_at,
+    updated_at
+  )
+  values
+    (
+      gen_random_uuid(),
+      '11111111-1111-1111-1111-111111111111',
+      'email',
+      '11111111-1111-1111-1111-111111111111',
+      jsonb_build_object(
+        'sub', '11111111-1111-1111-1111-111111111111',
+        'email', 'alumno1@servicioseguro.test',
+        'email_verified', true,
+        'phone_verified', false
+      ),
+      now(),
+      now(),
+      now()
+    ),
+    (
+      gen_random_uuid(),
+      '22222222-2222-2222-2222-222222222222',
+      'email',
+      '22222222-2222-2222-2222-222222222222',
+      jsonb_build_object(
+        'sub', '22222222-2222-2222-2222-222222222222',
+        'email', 'alumno2@servicioseguro.test',
+        'email_verified', true,
+        'phone_verified', false
+      ),
+      now(),
+      now(),
+      now()
+    ),
+    (
+      gen_random_uuid(),
+      '33333333-3333-3333-3333-333333333333',
+      'email',
+      '33333333-3333-3333-3333-333333333333',
+      jsonb_build_object(
+        'sub', '33333333-3333-3333-3333-333333333333',
+        'email', 'universidad@servicioseguro.test',
+        'email_verified', true,
+        'phone_verified', false
+      ),
+      now(),
+      now(),
+      now()
+    ),
+    (
+      gen_random_uuid(),
+      '44444444-4444-4444-4444-444444444444',
+      'email',
+      '44444444-4444-4444-4444-444444444444',
+      jsonb_build_object(
+        'sub', '44444444-4444-4444-4444-444444444444',
+        'email', 'empresa1@servicioseguro.test',
+        'email_verified', true,
+        'phone_verified', false
+      ),
+      now(),
+      now(),
+      now()
+    ),
+    (
+      gen_random_uuid(),
+      '55555555-5555-5555-5555-555555555555',
+      'email',
+      '55555555-5555-5555-5555-555555555555',
+      jsonb_build_object(
+        'sub', '55555555-5555-5555-5555-555555555555',
+        'email', 'empresa2@servicioseguro.test',
+        'email_verified', true,
+        'phone_verified', false
+      ),
+      now(),
+      now(),
+      now()
+    )
+  on conflict (provider, provider_id) do update set
+    user_id = excluded.user_id,
+    identity_data = excluded.identity_data,
+    last_sign_in_at = excluded.last_sign_in_at,
+    updated_at = excluded.updated_at;
 
   -- Roles finales de los perfiles
   update public.profiles

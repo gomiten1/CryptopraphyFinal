@@ -5,7 +5,9 @@ This folder contains the deployable Supabase Edge Functions for the project.
 ## Functions
 
 - `crypto-qr`: encrypts `{ alumno_id, empresa_id }` into a QR token.
+- `verify-qr`: decrypts a QR token and validates the linked alumno/empresa pair.
 - `sign-contract`: hashes and signs a contract event, then stores it in `contratos_eventos`.
+- `verify-contract`: recalculates the hash/signature for a stored contract event.
 
 ## Required secrets
 
@@ -21,7 +23,9 @@ The function runtime also needs `SUPABASE_URL`, which Supabase provides in the h
 
 - `supabase/functions/_shared/crypto.ts`
 - `supabase/functions/crypto-qr/index.ts`
+- `supabase/functions/verify-qr/index.ts`
 - `supabase/functions/sign-contract/index.ts`
+- `supabase/functions/verify-contract/index.ts`
 
 ## Deploy
 
@@ -32,7 +36,9 @@ supabase secrets set CRYPTO_QR_SECRET='your-32-byte-base64-secret'
 supabase secrets set SIGN_CONTRACT_SECRET='your-signature-secret'
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY='your-service-role-key'
 supabase functions deploy crypto-qr
+supabase functions deploy verify-qr
 supabase functions deploy sign-contract
+supabase functions deploy verify-contract
 ```
 
 ## Test
@@ -53,4 +59,22 @@ curl -X POST 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/sign-contract' \
   -H 'Authorization: Bearer YOUR_ANON_KEY' \
   -H 'Content-Type: application/json' \
   -d '{"alumno_id":"uuid-alumno","empresa_id":"uuid-empresa","json_datos":{"horas":4,"descripcion":"Asistencia"}}'
+```
+
+Example request to `verify-qr`:
+
+```bash
+curl -X POST 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/verify-qr' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"ciphertext.token","expected_alumno_id":"uuid-alumno","expected_empresa_id":"uuid-empresa"}'
+```
+
+Example request to `verify-contract`:
+
+```bash
+curl -X POST 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/verify-contract' \
+  -H 'Authorization: Bearer YOUR_ANON_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"record":{"json_datos":{"horas":4,"descripcion":"Asistencia"},"hash_sha256":"...","firma_digital":"..."}}'
 ```

@@ -1,51 +1,118 @@
-import { Shield, Activity, Search, Filter, Download, CheckCircle2, XCircle, AlertTriangle, Lock, QrCode, FileCheck, User, Eye } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Shield, Activity, Search, Filter, Download, CheckCircle2, XCircle, AlertTriangle, Lock, QrCode, FileCheck, User, Eye, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Sidebar from "./Sidebar";
+import supabase from "../lib/supabase";
+
+type ContractRow = {
+  id: string;
+  alumno_id: string | null;
+  empresa_id: string | null;
+  json_datos: Record<string, unknown> | null;
+  hash_sha256: string | null;
+  firma_digital: string | null;
+  creado_en: string | null;
+};
+
+type VerifyContractResult = {
+  verified?: boolean;
+  matches?: {
+    hash_sha256?: boolean;
+    firma_digital?: boolean;
+  };
+  computed?: {
+    hash_sha256?: string;
+    firma_digital?: string;
+  };
+  stored?: {
+    hash_sha256?: string;
+    firma_digital?: string;
+  };
+  algorithm?: string;
+  error?: string;
+};
 
 export default function Auditoria({ onNavigate }: { onNavigate: (view: string) => void }) {
-  const logs = [
-    { id: 1, type: 'qr_verification', user: 'Juan Pérez', action: 'QR verificado exitosamente', status: 'success', timestamp: '2026-05-18 14:35:22', ip: '192.168.1.100', hash: 'a3f8b2c9e1d4f7a5' },
-    { id: 2, type: 'contract_sign', user: 'Ana Martínez', action: 'Contrato digital firmado', status: 'success', timestamp: '2026-05-18 14:30:15', ip: '192.168.1.101', hash: '7d9f3a8e2b4c1f6d' },
-    { id: 3, type: 'login_failed', user: 'Unknown', action: 'Intento de acceso fallido', status: 'warning', timestamp: '2026-05-18 14:25:08', ip: '192.168.1.102', hash: null },
-    { id: 4, type: 'qr_verification', user: 'Carlos López', action: 'QR verificado exitosamente', status: 'success', timestamp: '2026-05-18 14:20:45', ip: '192.168.1.103', hash: '9c3e7f2d6a8b4c1a' },
-    { id: 5, type: 'company_verify', user: 'Admin', action: 'Empresa TechCorp verificada', status: 'success', timestamp: '2026-05-18 14:15:30', ip: '192.168.1.1', hash: '4f2a9c8e3b7d1f4a' },
-    { id: 6, type: 'contract_verify', user: 'Sistema', action: 'Validación blockchain de contrato', status: 'success', timestamp: '2026-05-18 14:10:12', ip: '192.168.1.1', hash: 'b5c8d2e6f9a1b3c7' },
-    { id: 7, type: 'data_export', user: 'Admin', action: 'Exportación de datos de alumnos', status: 'info', timestamp: '2026-05-18 14:05:55', ip: '192.168.1.1', hash: null },
-    { id: 8, type: 'qr_invalid', user: 'María García', action: 'QR inválido detectado', status: 'error', timestamp: '2026-05-18 14:00:33', ip: '192.168.1.104', hash: null },
-  ];
+  const [contracts, setContracts] = useState<ContractRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verificationById, setVerificationById] = useState<Record<string, VerifyContractResult>>({});
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'qr_verification':
-      case 'qr_invalid':
-        return QrCode;
-      case 'contract_sign':
-      case 'contract_verify':
-        return FileCheck;
-      case 'login_failed':
-        return Lock;
-      case 'company_verify':
-        return Shield;
-      default:
-        return Activity;
+  const loadContracts = async () => {
+    setLoading(true);
+    setError(null);
+
+    const { data, error: fetchError } = await supabase
+      .from('contratos_eventos')
+      .select('id, alumno_id, empresa_id, json_datos, hash_sha256, firma_digital, creado_en')
+      .order('creado_en', { ascending: false });
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setContracts([]);
+    } else {
+      setContracts((data ?? []) as ContractRow[]);
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadContracts();
+  }, []);
+
+  const handleVerifyContract = async (contract: ContractRow) => {
+    setVerifyingId(contract.id);
+    setError(null);
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke<VerifyContractResult>('verify-contract', {
+        body: { record: contract },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      setVerificationById((current) => ({
+        ...current,
+        [contract.id]: data ?? { verified: false, error: 'No response from verify-contract' },
+      }));
+    } catch (invokeError) {
+      setVerificationById((current) => ({
+        ...current,
+        [contract.id]: {
+          verified: false,
+          error: invokeError instanceof Error ? invokeError.message : 'No se pudo verificar el contrato',
+        },
+      }));
+    } finally {
+      setVerifyingId(null);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3" />Exitoso</Badge>;
-      case 'warning':
-        return <Badge variant="warning" className="gap-1"><AlertTriangle className="w-3 h-3" />Advertencia</Badge>;
-      case 'error':
-        return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />Error</Badge>;
-      default:
-        return <Badge variant="outline">Info</Badge>;
-    }
-  };
+  const filteredContracts = contracts.filter((contract) => {
+    const term = search.toLowerCase();
+    return [
+      contract.id,
+      contract.alumno_id ?? '',
+      contract.empresa_id ?? '',
+      contract.hash_sha256 ?? '',
+      contract.firma_digital ?? '',
+      JSON.stringify(contract.json_datos ?? {}),
+    ].some((value) => value.toLowerCase().includes(term));
+  });
+
+  const stats = useMemo(() => {
+    const verified = contracts.filter((contract) => verificationById[contract.id]?.verified === true).length;
+    const invalid = contracts.filter((contract) => verificationById[contract.id]?.verified === false && verificationById[contract.id]).length;
+    return { verified, invalid, total: contracts.length };
+  }, [contracts, verificationById]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -53,16 +120,19 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
 
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Auditoría y Seguridad</h1>
-              <p className="text-muted-foreground">Registro completo de eventos del sistema</p>
+              <p className="text-muted-foreground">Contratos reales desde Supabase y validación criptográfica</p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtros Avanzados
+              </Button>
+              <Button onClick={loadContracts}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refrescar
               </Button>
               <Button>
                 <Download className="w-4 h-4 mr-2" />
@@ -71,7 +141,6 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
             </div>
           </div>
 
-          {/* Security Stats */}
           <div className="grid md:grid-cols-4 gap-6 mb-8">
             <Card className="border-l-4 border-l-green-600">
               <CardContent className="p-6">
@@ -80,10 +149,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <CheckCircle2 className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">
-                  {logs.filter(l => l.status === 'success').length}
-                </p>
-                <p className="text-sm text-muted-foreground">Eventos Exitosos</p>
+                <p className="text-2xl font-bold mb-1">{stats.verified}</p>
+                <p className="text-sm text-muted-foreground">Contratos Verificados</p>
               </CardContent>
             </Card>
 
@@ -94,10 +161,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <AlertTriangle className="w-6 h-6 text-yellow-600" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">
-                  {logs.filter(l => l.status === 'warning').length}
-                </p>
-                <p className="text-sm text-muted-foreground">Advertencias</p>
+                <p className="text-2xl font-bold mb-1">{stats.invalid}</p>
+                <p className="text-sm text-muted-foreground">Verificaciones Fallidas</p>
               </CardContent>
             </Card>
 
@@ -108,10 +173,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <XCircle className="w-6 h-6 text-red-600" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">
-                  {logs.filter(l => l.status === 'error').length}
-                </p>
-                <p className="text-sm text-muted-foreground">Errores Críticos</p>
+                <p className="text-2xl font-bold mb-1">{contracts.length === 0 ? 0 : contracts.length - stats.verified - stats.invalid}</p>
+                <p className="text-sm text-muted-foreground">Pendientes de Verificación</p>
               </CardContent>
             </Card>
 
@@ -122,23 +185,21 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <Shield className="w-6 h-6 text-primary" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">100%</p>
-                <p className="text-sm text-muted-foreground">Nivel de Seguridad</p>
+                <p className="text-2xl font-bold mb-1">{contracts.length === 0 ? '0%' : `${Math.round((stats.verified / contracts.length) * 100)}%`}</p>
+                <p className="text-sm text-muted-foreground">Nivel de Integridad</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Search */}
           <Card className="mb-8">
             <CardContent className="p-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-10" placeholder="Buscar por usuario, acción, IP o hash..." />
+                <Input className="pl-10" placeholder="Buscar por alumno, empresa, hash o firma..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
             </CardContent>
           </Card>
 
-          {/* Event Types */}
           <div className="grid md:grid-cols-4 gap-4 mb-8">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-4">
@@ -147,10 +208,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <QrCode className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Verificaciones QR</p>
-                    <p className="text-sm text-muted-foreground">
-                      {logs.filter(l => l.type.includes('qr')).length} eventos
-                    </p>
+                    <p className="font-medium">Contratos</p>
+                    <p className="text-sm text-muted-foreground">{contracts.length} registros</p>
                   </div>
                 </div>
               </CardContent>
@@ -163,10 +222,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <FileCheck className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <p className="font-medium">Contratos</p>
-                    <p className="text-sm text-muted-foreground">
-                      {logs.filter(l => l.type.includes('contract')).length} eventos
-                    </p>
+                    <p className="font-medium">Verificados</p>
+                    <p className="text-sm text-muted-foreground">{stats.verified} eventos</p>
                   </div>
                 </div>
               </CardContent>
@@ -179,10 +236,8 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <Lock className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <p className="font-medium">Accesos</p>
-                    <p className="text-sm text-muted-foreground">
-                      {logs.filter(l => l.type.includes('login')).length} eventos
-                    </p>
+                    <p className="font-medium">Fallback</p>
+                    <p className="text-sm text-muted-foreground">{stats.invalid} inconsistencias</p>
                   </div>
                 </div>
               </CardContent>
@@ -195,78 +250,91 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                     <Shield className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-medium">Verificaciones</p>
-                    <p className="text-sm text-muted-foreground">
-                      {logs.filter(l => l.type.includes('verify')).length} eventos
-                    </p>
+                    <p className="font-medium">Integridad</p>
+                    <p className="text-sm text-muted-foreground">{contracts.length === 0 ? '0%' : `${Math.round((stats.verified / contracts.length) * 100)}%`}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Audit Log */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5" />
                 Registro de Auditoría
               </CardTitle>
-              <CardDescription>Timeline completo de eventos de seguridad</CardDescription>
+              <CardDescription>Contratos almacenados en la base y comprobación de hash/firma</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {logs.map((log) => {
-                  const Icon = getIcon(log.type);
-                  return (
-                    <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/5 transition-colors">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        log.status === 'success' ? 'bg-green-100' :
-                        log.status === 'warning' ? 'bg-yellow-100' :
-                        log.status === 'error' ? 'bg-red-100' : 'bg-blue-100'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${
-                          log.status === 'success' ? 'text-green-600' :
-                          log.status === 'warning' ? 'text-yellow-600' :
-                          log.status === 'error' ? 'text-red-600' : 'text-blue-600'
-                        }`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="font-medium mb-1">{log.action}</p>
-                            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                {log.user}
-                              </span>
-                              <span>•</span>
-                              <span>{log.timestamp}</span>
-                              <span>•</span>
-                              <span className="font-mono text-xs">IP: {log.ip}</span>
-                              {log.hash && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono text-xs">Hash: {log.hash}</span>
-                                </>
+              {loading ? (
+                <div className="py-16 flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Cargando contratos...
+                </div>
+              ) : error ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                  <p className="font-medium mb-1">No fue posible cargar la auditoría</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+              ) : filteredContracts.length === 0 ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  No hay contratos para auditar.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredContracts.map((contract) => {
+                    const result = verificationById[contract.id];
+                    const statusBadge = result
+                      ? result.verified
+                        ? <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3" />Íntegro</Badge>
+                        : <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />Alterado</Badge>
+                      : <Badge variant="outline">Sin verificar</Badge>;
+
+                    return (
+                      <div key={contract.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-100">
+                          <FileCheck className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-2 gap-4">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium mb-1">Contrato {contract.id.slice(0, 8)}</p>
+                              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {contract.alumno_id || 'Alumno no disponible'}
+                                </span>
+                                <span>•</span>
+                                <span>{contract.creado_en || 'Sin fecha'}</span>
+                                <span>•</span>
+                                <span className="font-mono text-xs">Hash: {contract.hash_sha256?.slice(0, 16) ?? 'Pendiente'}</span>
+                              </div>
+                              {result?.error && <p className="text-sm text-red-600 mt-2">{result.error}</p>}
+                              {result?.matches && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Hash {result.matches.hash_sha256 ? 'coincide' : 'no coincide'} · Firma {result.matches.firma_digital ? 'coincide' : 'no coincide'}
+                                </p>
                               )}
                             </div>
+                            {statusBadge}
                           </div>
-                          {getStatusBadge(log.status)}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleVerifyContract(contract)} disabled={verifyingId === contract.id}>
+                            {verifyingId === contract.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                            Verificar
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* Pagination */}
               <div className="flex items-center justify-between mt-6">
                 <p className="text-sm text-muted-foreground">
-                  Mostrando {logs.length} de {logs.length} eventos
+                  Mostrando {filteredContracts.length} de {contracts.length} contratos
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled>Anterior</Button>
