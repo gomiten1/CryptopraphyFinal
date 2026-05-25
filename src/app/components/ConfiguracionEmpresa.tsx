@@ -1,7 +1,6 @@
 import { Building2, Lock, Bell, Shield, Users, FileText, Mail, Phone, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Sidebar from "./Sidebar";
 
@@ -33,17 +32,17 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Razón Social</label>
-                    <Input defaultValue="TechCorp S.A. de C.V." />
+                    <Input defaultValue="No registrada" />
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">RFC</label>
-                      <Input defaultValue="TEC123456ABC" />
+                      <Input defaultValue="No registrado" />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Sector</label>
-                      <Input defaultValue="Tecnología" />
+                      <Input defaultValue="No registrado" />
                     </div>
                   </div>
 
@@ -51,7 +50,7 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                     <label className="text-sm font-medium mb-2 block">Dirección</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input className="pl-10" defaultValue="Av. Tecnológico 123, Col. Innovación, CP 64700" />
+                      <Input className="pl-10" defaultValue="No registrada" />
                     </div>
                   </div>
 
@@ -60,14 +59,14 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                       <label className="text-sm font-medium mb-2 block">Teléfono</label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input className="pl-10" defaultValue="+52 81 1234 5678" />
+                        <Input className="pl-10" defaultValue="No registrado" />
                       </div>
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Correo Institucional</label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input className="pl-10" defaultValue="contacto@techcorp.com" />
+                        <Input className="pl-10" defaultValue="No registrado" />
                       </div>
                     </div>
                   </div>
@@ -76,13 +75,10 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                     <label className="text-sm font-medium mb-2 block">Descripción</label>
                     <textarea
                       className="flex w-full rounded-lg border border-input bg-input-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px]"
-                      defaultValue="Empresa líder en desarrollo de software y soluciones tecnológicas innovadoras."
+                      defaultValue="No registrada"
                     />
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button>Guardar Cambios</Button>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -97,28 +93,10 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 mb-4">
-                    {[
-                      { name: 'Ing. María Rodríguez', role: 'Coordinador Principal', email: 'maria.rodriguez@techcorp.com' },
-                      { name: 'Lic. Carlos Méndez', role: 'Supervisor de Área', email: 'carlos.mendez@techcorp.com' },
-                    ].map((person, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="font-medium text-primary">{person.name[0]}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{person.name}</p>
-                            <p className="text-sm text-muted-foreground">{person.role} • {person.email}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">Editar</Button>
-                      </div>
-                    ))}
+                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                      No hay responsables cargados.
+                    </div>
                   </div>
-                  <Button variant="outline" className="w-full">
-                    <Users className="w-4 h-4 mr-2" />
-                    Agregar Responsable
-                  </Button>
                 </CardContent>
               </Card>
 
@@ -147,9 +125,6 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                     <Input type="password" placeholder="••••••••" />
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button>Actualizar Contraseña</Button>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -243,23 +218,20 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Número de Convenio</p>
-                      <p className="font-medium">CONV-2024-00156</p>
+                      <p className="font-medium">No registrado</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Fecha de Inicio</p>
-                      <p className="font-medium">01 Enero 2024</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Vigencia</p>
-                      <p className="font-medium">Hasta 31 Dic 2026</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Estado</p>
-                      <Badge variant="success">Activo</Badge>
+                      <Badge variant="secondary">Pendiente</Badge>
                     </div>
-                    <Button variant="outline" className="w-full">
-                      Ver Convenio
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -274,9 +246,6 @@ export default function ConfiguracionEmpresa({ onNavigate }: { onNavigate: (view
                       <p className="text-sm text-red-700 mb-3">
                         Acciones permanentes sobre la cuenta empresarial
                       </p>
-                      <Button variant="destructive" size="sm" className="w-full">
-                        Cancelar Convenio
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

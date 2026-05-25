@@ -53,8 +53,8 @@ export default function FeriaLanding({ onNavigate }: { onNavigate: (view: string
                       <Briefcase className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">89 proyectos disponibles</h4>
-                      <p className="text-sm text-muted-foreground">En diferentes áreas</p>
+                      <h4 className="font-semibold">Proyectos disponibles</h4>
+                      <p className="text-sm text-muted-foreground">Información cargada desde el catálogo</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -62,8 +62,8 @@ export default function FeriaLanding({ onNavigate }: { onNavigate: (view: string
                       <Building2 className="w-6 h-6 text-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">156 organizaciones</h4>
-                      <p className="text-sm text-muted-foreground">Esperando por ti</p>
+                      <h4 className="font-semibold">Organizaciones participantes</h4>
+                      <p className="text-sm text-muted-foreground">Información cargada desde el catálogo</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -71,8 +71,8 @@ export default function FeriaLanding({ onNavigate }: { onNavigate: (view: string
                       <Users className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">2,547 estudiantes</h4>
-                      <p className="text-sm text-muted-foreground">Ya están haciendo su servicio</p>
+                      <h4 className="font-semibold">Estudiantes inscritos</h4>
+                      <p className="text-sm text-muted-foreground">Información cargada desde el sistema</p>
                     </div>
                   </div>
                 </div>
@@ -182,10 +182,10 @@ export default function FeriaLanding({ onNavigate }: { onNavigate: (view: string
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             {[
-              { value: "2,547", label: "Estudiantes inscritos" },
-              { value: "156", label: "Organizaciones aliadas" },
-              { value: "89", label: "Proyectos activos" },
-              { value: "95%", label: "Satisfacción general" }
+              { value: "--", label: "Estudiantes inscritos" },
+              { value: "--", label: "Organizaciones aliadas" },
+              { value: "--", label: "Proyectos activos" },
+              { value: "--", label: "Satisfacción general" }
             ].map((stat, idx) => (
               <div key={idx}>
                 <p className="text-4xl md:text-5xl font-bold text-primary mb-2">{stat.value}</p>

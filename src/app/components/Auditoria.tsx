@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Shield, Activity, Search, Filter, Download, CheckCircle2, XCircle, AlertTriangle, Lock, QrCode, FileCheck, User, Eye, Loader2, RefreshCw } from "lucide-react";
+import { Shield, Activity, Search, CheckCircle2, XCircle, AlertTriangle, Lock, QrCode, FileCheck, User, Eye, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -125,20 +125,10 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
               <h1 className="text-3xl font-bold mb-2">Auditoría y Seguridad</h1>
               <p className="text-muted-foreground">Contratos reales desde Supabase y validación criptográfica</p>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros Avanzados
-              </Button>
-              <Button onClick={loadContracts}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refrescar
-              </Button>
-              <Button>
-                <Download className="w-4 h-4 mr-2" />
-                Exportar Logs
-              </Button>
-            </div>
+            <Button onClick={loadContracts}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refrescar
+            </Button>
           </div>
 
           <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -336,10 +326,6 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                 <p className="text-sm text-muted-foreground">
                   Mostrando {filteredContracts.length} de {contracts.length} contratos
                 </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled>Anterior</Button>
-                  <Button variant="outline" size="sm">Siguiente</Button>
-                </div>
               </div>
             </CardContent>
           </Card>

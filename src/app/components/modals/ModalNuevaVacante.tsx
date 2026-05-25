@@ -52,7 +52,7 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
                 <label className="text-sm font-medium mb-2 block">Título de la Vacante *</label>
                 <Input
                   required
-                  placeholder="Ej: Desarrollador Frontend React"
+                  placeholder="Título de la vacante"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
@@ -63,7 +63,7 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
                   <label className="text-sm font-medium mb-2 block">Área *</label>
                   <Input
                     required
-                    placeholder="Ej: Desarrollo"
+                    placeholder="Área o especialidad"
                     value={formData.area}
                     onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                   />
@@ -88,7 +88,7 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
                 <textarea
                   required
                   className="flex w-full rounded-lg border border-input bg-input-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px]"
-                  placeholder="Describe las actividades y responsabilidades del puesto..."
+                  placeholder="Describe las actividades y responsabilidades"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
@@ -98,7 +98,7 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
                 <label className="text-sm font-medium mb-2 block">Requisitos</label>
                 <textarea
                   className="flex w-full rounded-lg border border-input bg-input-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
-                  placeholder="Conocimientos y habilidades requeridas..."
+                  placeholder="Lista de conocimientos o habilidades"
                   value={formData.requirements}
                   onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
                 />

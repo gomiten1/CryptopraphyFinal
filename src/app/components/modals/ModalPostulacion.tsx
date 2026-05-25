@@ -24,9 +24,8 @@ export default function ModalPostulacion({ isOpen, onClose, vacancy }: ModalPost
 
   const handleConfirm = () => {
     setStep('processing');
-    // Simular proceso de firma digital
     setTimeout(() => {
-      setHash('a3f8b2c9e1d4f7a5b8c3d9e6f2a7b4c1');
+      setHash('Pendiente');
       setStep('success');
     }, 2000);
   };
@@ -184,7 +183,7 @@ export default function ModalPostulacion({ isOpen, onClose, vacancy }: ModalPost
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-green-700">Estado:</span>
-                      <Badge variant="success">En Revisión</Badge>
+                      <Badge variant="secondary">En revisión</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-green-700">Hash SHA-256:</span>
@@ -196,7 +195,7 @@ export default function ModalPostulacion({ isOpen, onClose, vacancy }: ModalPost
                     </div>
                     <div className="flex justify-between">
                       <span className="text-green-700">Firma Digital:</span>
-                      <span className="text-green-900">RSA-2048 ✓</span>
+                      <span className="text-green-900">Pendiente</span>
                     </div>
                   </div>
                 </div>

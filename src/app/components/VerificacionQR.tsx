@@ -155,13 +155,13 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
 
                   {/* Status Badge */}
                   <div className="absolute top-4 right-4">
-                    <Badge variant={token ? 'success' : 'secondary'} className="gap-1">
+                    <Badge variant={token ? 'default' : 'secondary'} className="gap-1">
                       {token ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                       {token ? 'QR generado' : 'Pendiente'}
                     </Badge>
                   </div>
                 </div>
-
+                    <Badge variant="default" className="mt-2">Verificado</Badge>
                 {/* QR Info */}
                 <div className="space-y-4">
                   <div className="p-4 bg-muted rounded-lg">
@@ -230,20 +230,20 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                       <User className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Juan Pérez Martínez</h3>
-                      <p className="text-sm text-muted-foreground">A2021001234</p>
-                      <Badge variant="success" className="mt-2">Verificado</Badge>
+                      <h3 className="font-semibold text-lg">{profile?.full_name || 'Nombre no registrado'}</h3>
+                      <p className="text-sm text-muted-foreground">{profile?.id || 'Matrícula no registrada'}</p>
+                      <Badge variant="default" className="mt-2">Verificado</Badge>
                     </div>
                   </div>
 
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Carrera:</span>
-                      <span className="font-medium">{profile?.metadata?.career ? String(profile.metadata.career) : 'Ing. en Sistemas'}</span>
+                      <span className="font-medium">{profile?.metadata?.career ? String(profile.metadata.career) : 'No registrado'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Semestre:</span>
-                      <span className="font-medium">{profile?.metadata?.semester ? String(profile.metadata.semester) : '8vo Semestre'}</span>
+                      <span className="font-medium">{profile?.metadata?.semester ? String(profile.metadata.semester) : 'No registrado'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Empresa:</span>
@@ -251,7 +251,7 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Estado:</span>
-                      <Badge variant={token ? 'success' : 'secondary'}>{token ? 'Activo' : 'Pendiente'}</Badge>
+                      <Badge variant={token ? 'default' : 'secondary'}>{token ? 'Activo' : 'Pendiente'}</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -302,21 +302,8 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { date: '18 May 2026, 14:35', location: 'Entrada Principal', status: 'success' },
-                      { date: '18 May 2026, 09:15', location: 'Oficina TechCorp', status: 'success' },
-                      { date: '17 May 2026, 15:20', location: 'Biblioteca', status: 'success' },
-                      { date: '17 May 2026, 08:45', location: 'Entrada Principal', status: 'success' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 border rounded-lg">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{item.location}</p>
-                          <p className="text-xs text-muted-foreground">{item.date}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                    Sin verificaciones registradas todavía para este QR.
                   </div>
                 </CardContent>
               </Card>

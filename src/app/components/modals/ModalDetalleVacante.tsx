@@ -1,4 +1,4 @@
-import { X, Briefcase, Building2, MapPin, Clock, Users, CheckCircle2, Edit } from "lucide-react";
+import { X, Briefcase, Building2, MapPin, Clock, Users, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -16,6 +16,8 @@ interface ModalDetalleVacanteProps {
     filled: number;
     applicants: number;
     status: string;
+    description?: string;
+    requirements?: string[];
   };
 }
 
@@ -51,7 +53,7 @@ export default function ModalDetalleVacante({ isOpen, onClose, vacancy }: ModalD
                 </div>
               </div>
               {vacancy.status === 'filled' ? (
-                <Badge variant="success">Cupo Lleno</Badge>
+                <Badge variant="secondary">Cupo lleno</Badge>
               ) : (
                 <Badge variant="default">Activa</Badge>
               )}
@@ -95,9 +97,7 @@ export default function ModalDetalleVacante({ isOpen, onClose, vacancy }: ModalD
             <h3 className="font-semibold mb-3">Descripción del Puesto</h3>
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Desarrollo de aplicaciones web modernas utilizando React, TypeScript y Tailwind CSS.
-                Colaboración con el equipo de desarrollo en proyectos de software empresarial.
-                Participación en reuniones de planeación y seguimiento de sprints.
+                {vacancy.description || 'Sin descripción registrada para esta vacante.'}
               </p>
             </div>
           </div>
@@ -105,24 +105,20 @@ export default function ModalDetalleVacante({ isOpen, onClose, vacancy }: ModalD
           {/* Requirements */}
           <div>
             <h3 className="font-semibold mb-3">Requisitos</h3>
-            <div className="space-y-2">
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Conocimientos en React y JavaScript/TypeScript</span>
+            {vacancy.requirements && vacancy.requirements.length > 0 ? (
+              <div className="space-y-2">
+                {vacancy.requirements.map((requirement) => (
+                  <div key={requirement} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>{requirement}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Familiaridad con Git y control de versiones</span>
+            ) : (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Sin requisitos registrados para esta vacante.
               </div>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Capacidad de trabajo en equipo</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Disponibilidad de 20 horas semanales</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Applicants */}
@@ -149,10 +145,6 @@ export default function ModalDetalleVacante({ isOpen, onClose, vacancy }: ModalD
           <div className="flex gap-3 pt-4 border-t">
             <Button variant="outline" onClick={onClose} className="flex-1">
               Cerrar
-            </Button>
-            <Button className="flex-1">
-              <Edit className="w-4 h-4 mr-2" />
-              Editar Vacante
             </Button>
           </div>
         </CardContent>

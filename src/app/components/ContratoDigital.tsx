@@ -122,6 +122,26 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
 
   const contractHash = result?.verification?.hash_sha256 || result?.record?.hash_sha256 || 'Pendiente';
   const contractSignature = result?.verification?.firma_digital || result?.record?.firma_digital || 'Pendiente';
+  const signatories = [
+    {
+      name: profile?.full_name || 'Alumno',
+      subtitle: profile?.id || 'Sin matrícula',
+      colorClass: 'bg-primary/10 text-primary',
+      verified: Boolean(result),
+    },
+    {
+      name: profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Supervisor no registrado',
+      subtitle: empresaId || 'Empresa receptora',
+      colorClass: 'bg-secondary/10 text-secondary',
+      verified: Boolean(result),
+    },
+    {
+      name: 'Coordinación universitaria',
+      subtitle: result ? 'Registro automático al firmar' : 'Pendiente de firma',
+      colorClass: 'bg-accent/10 text-accent',
+      verified: Boolean(result),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -185,7 +205,6 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                 <CardDescription>Convenio de Servicio Social Universitario vinculado al perfil actual</CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Simulated PDF Preview */}
                 <div className="border-2 border-dashed rounded-lg p-8 bg-white min-h-[600px]">
                   <div className="max-w-2xl mx-auto space-y-6">
                     <div className="text-center mb-8">
@@ -206,11 +225,11 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Carrera:</p>
-                          <p>{profile?.metadata?.career ? String(profile.metadata.career) : 'Ingeniería en Sistemas'}</p>
+                          <p>{profile?.metadata?.career ? String(profile.metadata.career) : 'No registrado'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Semestre:</p>
-                          <p>{profile?.metadata?.semester ? String(profile.metadata.semester) : '8vo Semestre'}</p>
+                          <p>{profile?.metadata?.semester ? String(profile.metadata.semester) : 'No registrado'}</p>
                         </div>
                       </div>
 
@@ -223,7 +242,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">RFC:</p>
-                            <p>{profile?.metadata?.company_rfc ? String(profile.metadata.company_rfc) : 'Pendiente'}</p>
+                            <p>{profile?.metadata?.company_rfc ? String(profile.metadata.company_rfc) : 'No registrado'}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">Área:</p>
@@ -231,7 +250,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">Supervisor:</p>
-                            <p>{profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Pendiente'}</p>
+                            <p>{profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'No registrado'}</p>
                           </div>
                         </div>
                       </div>
@@ -239,10 +258,10 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       <div className="border-t pt-4 mt-4">
                         <p className="font-medium">PERIODO Y HORARIO</p>
                         <div className="pl-4 mt-2 space-y-2">
-                          <p><span className="text-muted-foreground">Inicio:</span> {profile?.metadata?.start_date ? String(profile.metadata.start_date) : 'Pendiente'}</p>
-                          <p><span className="text-muted-foreground">Término:</span> {profile?.metadata?.end_date ? String(profile.metadata.end_date) : 'Pendiente'}</p>
+                          <p><span className="text-muted-foreground">Inicio:</span> {profile?.metadata?.start_date ? String(profile.metadata.start_date) : 'No registrado'}</p>
+                          <p><span className="text-muted-foreground">Término:</span> {profile?.metadata?.end_date ? String(profile.metadata.end_date) : 'No registrado'}</p>
                           <p><span className="text-muted-foreground">Total de Horas:</span> {hours} horas</p>
-                          <p><span className="text-muted-foreground">Horario:</span> {profile?.metadata?.schedule ? String(profile.metadata.schedule) : 'Lunes a Viernes, 9:00 - 14:00 hrs'}</p>
+                          <p><span className="text-muted-foreground">Horario:</span> {profile?.metadata?.schedule ? String(profile.metadata.schedule) : 'No registrado'}</p>
                         </div>
                       </div>
 
@@ -331,7 +350,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Blockchain TX</p>
+                      <p className="text-sm text-muted-foreground mb-2">ID del registro</p>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="font-mono text-xs break-all">
                           {result?.record?.id || 'Pendiente'}
@@ -349,84 +368,27 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Juan Pérez</p>
-                        <p className="text-xs text-muted-foreground">Alumno</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <CheckCircle2 className="w-3 h-3 text-green-600" />
-                          <span className="text-xs text-green-600">Verificado</span>
+                    {signatories.map((signatory) => (
+                      <div key={`${signatory.name}-${signatory.subtitle}`} className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${signatory.colorClass}`}>
+                          <User className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{signatory.name}</p>
+                          <p className="text-xs text-muted-foreground">{signatory.subtitle}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <CheckCircle2 className={`w-3 h-3 ${signatory.verified ? 'text-green-600' : 'text-muted-foreground'}`} />
+                            <span className={`text-xs ${signatory.verified ? 'text-green-600' : 'text-muted-foreground'}`}>
+                              {signatory.verified ? 'Verificado' : 'Pendiente'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-secondary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Supervisor de empresa'}</p>
-                        <p className="text-xs text-muted-foreground">{empresaId || 'Empresa receptora'}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <CheckCircle2 className="w-3 h-3 text-green-600" />
-                          <span className="text-xs text-green-600">Verificado</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-accent" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Coordinación universitaria</p>
-                        <p className="text-xs text-muted-foreground">Registro automático al firmar</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <CheckCircle2 className="w-3 h-3 text-green-600" />
-                          <span className="text-xs text-green-600">Verificado</span>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Metadata */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Metadatos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Creado:</span>
-                      <span>18 May 2026</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Modificado:</span>
-                      <span>18 May 2026</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Versión:</span>
-                      <span>1.0</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Formato:</span>
-                      <span>PDF/A-2b</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tamaño:</span>
-                      <span>247 KB</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>

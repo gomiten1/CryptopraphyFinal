@@ -1,4 +1,4 @@
-import { Briefcase, Plus, Users, Eye, Edit, Trash2, BarChart3, Clock, MapPin, TrendingUp } from "lucide-react";
+import { Briefcase, Plus, Users, Eye, BarChart3, Clock, MapPin, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -11,17 +11,32 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
   const [modalNuevaOpen, setModalNuevaOpen] = useState(false);
   const [modalSolicitudesOpen, setModalSolicitudesOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<any>(null);
-  const vacantesActivas = [
-    { id: 1, title: 'Desarrollador Frontend React', area: 'Desarrollo', applicants: 8, slots: 3, filled: 2, status: 'active', location: 'Monterrey', hours: 480 },
-    { id: 2, title: 'Analista de Datos', area: 'Análisis', applicants: 5, slots: 2, filled: 2, status: 'filled', location: 'CDMX', hours: 480 },
-    { id: 3, title: 'Diseñador UI/UX', area: 'Diseño', applicants: 12, slots: 2, filled: 1, status: 'active', location: 'Guadalajara', hours: 480 },
-    { id: 4, title: 'Soporte Técnico', area: 'Soporte', applicants: 3, slots: 4, filled: 0, status: 'active', location: 'Querétaro', hours: 480 },
-  ];
+  const vacantesActivas: Array<{
+    id: number;
+    title: string;
+    area: string;
+    applicants: number;
+    slots: number;
+    filled: number;
+    status: 'active' | 'filled';
+    location: string;
+    hours: number;
+  }> = [];
 
-  const vacantesCerradas = [
-    { id: 5, title: 'Administrador de Bases de Datos', area: 'Infraestructura', applicants: 6, slots: 2, filled: 2, status: 'closed' },
-    { id: 6, title: 'Tester QA', area: 'Calidad', applicants: 4, slots: 1, filled: 1, status: 'closed' },
-  ];
+  const vacantesCerradas: Array<{
+    id: number;
+    title: string;
+    area: string;
+    applicants: number;
+    slots: number;
+    filled: number;
+    status: 'closed';
+  }> = [];
+
+  const totalApplicants = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.applicants, 0);
+  const totalFilled = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.filled, 0);
+  const totalSlots = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.slots, 0);
+  const occupancy = totalSlots > 0 ? Math.round((totalFilled / totalSlots) * 100) : 0;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -51,7 +66,7 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                   </div>
                 </div>
                 <p className="text-2xl font-bold mb-1">{vacantesActivas.length}</p>
-                <p className="text-sm text-muted-foreground">Vacantes Activas</p>
+                <p className="text-sm text-muted-foreground">Vacantes activas</p>
               </CardContent>
             </Card>
 
@@ -62,10 +77,8 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                     <Users className="w-6 h-6 text-secondary" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">
-                  {vacantesActivas.reduce((acc, v) => acc + v.applicants, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Solicitudes Totales</p>
+                <p className="text-2xl font-bold mb-1">{totalApplicants}</p>
+                <p className="text-sm text-muted-foreground">Solicitudes totales</p>
               </CardContent>
             </Card>
 
@@ -77,10 +90,9 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                   </div>
                 </div>
                 <p className="text-2xl font-bold mb-1">
-                  {vacantesActivas.reduce((acc, v) => acc + v.filled, 0)}/
-                  {vacantesActivas.reduce((acc, v) => acc + v.slots, 0)}
+                  {totalFilled}/{totalSlots}
                 </p>
-                <p className="text-sm text-muted-foreground">Cupos Ocupados</p>
+                <p className="text-sm text-muted-foreground">Cupos ocupados</p>
               </CardContent>
             </Card>
 
@@ -91,11 +103,8 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                     <TrendingUp className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">
-                  {Math.round((vacantesActivas.reduce((acc, v) => acc + v.filled, 0) /
-                    vacantesActivas.reduce((acc, v) => acc + v.slots, 0)) * 100)}%
-                </p>
-                <p className="text-sm text-muted-foreground">Tasa de Ocupación</p>
+                <p className="text-2xl font-bold mb-1">{occupancy}%</p>
+                <p className="text-sm text-muted-foreground">Tasa de ocupación</p>
               </CardContent>
             </Card>
           </div>
@@ -115,7 +124,12 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              {vacantesActivas.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No hay vacantes activas registradas.
+                </div>
+              ) : (
+                <div className="space-y-4">
                 {vacantesActivas.map((vacancy) => (
                   <div key={vacancy.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-4">
@@ -145,7 +159,7 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                       </div>
                       <div className="flex gap-2">
                         {vacancy.status === 'filled' ? (
-                          <Badge variant="success">Cupo Lleno</Badge>
+                          <Badge variant="secondary">Cupo lleno</Badge>
                         ) : (
                           <Badge variant="default">Activa</Badge>
                         )}
@@ -181,7 +195,7 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
@@ -191,26 +205,17 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                         }}
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        Ver Solicitudes ({vacancy.applicants})
+                        Ver solicitudes ({vacancy.applicants})
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                      </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => onNavigate('estadisticas-empresa')}>
                         <BarChart3 className="w-4 h-4 mr-2" />
                         Estadísticas
                       </Button>
-                      {vacancy.status !== 'filled' && (
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Cerrar
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -224,7 +229,12 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
               <CardDescription>Historial de oportunidades completadas</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              {vacantesCerradas.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No hay vacantes cerradas registradas.
+                </div>
+              ) : (
+                <div className="space-y-3">
                 {vacantesCerradas.map((vacancy) => (
                   <div key={vacancy.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
@@ -240,13 +250,11 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">Cerrada</Badge>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

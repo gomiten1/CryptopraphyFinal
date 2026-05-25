@@ -33,23 +33,23 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Nombre de la Institución</label>
-                    <Input defaultValue="Universidad Nacional" />
+                    <Input defaultValue="No registrado" />
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">Horas Requeridas</label>
-                      <Input type="number" defaultValue="480" />
+                      <Input type="number" defaultValue="0" />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Periodo Académico</label>
-                      <Input defaultValue="2024-2026" />
+                      <Input defaultValue="No registrado" />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Correo Institucional</label>
-                    <Input defaultValue="servicio.social@universidad.edu.mx" />
+                    <Input defaultValue="No registrado" />
                   </div>
 
                   <div className="flex justify-end">
@@ -73,9 +73,9 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                       <p className="font-medium">Cifrado AES-256</p>
                       <p className="text-sm text-muted-foreground">Protección de datos sensibles</p>
                     </div>
-                    <Badge variant="success" className="gap-1">
+                    <Badge variant="secondary" className="gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      Activo
+                      Sin datos
                     </Badge>
                   </div>
 
@@ -84,9 +84,9 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                       <p className="font-medium">Firma Digital RSA-2048</p>
                       <p className="text-sm text-muted-foreground">Contratos digitales</p>
                     </div>
-                    <Badge variant="success" className="gap-1">
+                    <Badge variant="secondary" className="gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      Activo
+                      Sin datos
                     </Badge>
                   </div>
 
@@ -95,9 +95,9 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                       <p className="font-medium">Validación QR HMAC-SHA256</p>
                       <p className="text-sm text-muted-foreground">Códigos QR seguros</p>
                     </div>
-                    <Badge variant="success" className="gap-1">
+                    <Badge variant="secondary" className="gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      Activo
+                      Sin datos
                     </Badge>
                   </div>
 
@@ -106,9 +106,9 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                       <p className="font-medium">Blockchain Verification</p>
                       <p className="text-sm text-muted-foreground">Validación descentralizada</p>
                     </div>
-                    <Badge variant="success" className="gap-1">
+                    <Badge variant="secondary" className="gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      Activo
+                      Sin datos
                     </Badge>
                   </div>
 
@@ -131,9 +131,9 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                 <CardContent>
                   <div className="space-y-3">
                     {[
-                      { role: 'Administrador', users: 3, permissions: 'Acceso completo' },
-                      { role: 'Empresa', users: 156, permissions: 'Gestión de vacantes y alumnos' },
-                      { role: 'Alumno', users: 2547, permissions: 'Visualización y postulación' },
+                      { role: 'Administrador', users: 0, permissions: 'Acceso completo' },
+                      { role: 'Empresa', users: 0, permissions: 'Gestión de vacantes y alumnos' },
+                      { role: 'Alumno', users: 0, permissions: 'Visualización y postulación' },
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
@@ -252,19 +252,19 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Base de Datos</span>
-                      <Badge variant="success">Operativa</Badge>
+                      <Badge variant="secondary">Sin datos</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Servidor</span>
-                      <Badge variant="success">En Línea</Badge>
+                      <Badge variant="secondary">Sin datos</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Blockchain</span>
-                      <Badge variant="success">Sincronizado</Badge>
+                      <Badge variant="secondary">Sin datos</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Último Backup</span>
-                      <span className="text-sm text-muted-foreground">Hace 2h</span>
+                      <span className="text-sm text-muted-foreground">No registrado</span>
                     </div>
                   </div>
                 </CardContent>
@@ -283,17 +283,13 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Clave Pública</p>
                       <div className="p-3 bg-muted rounded-lg">
-                        <p className="font-mono text-xs break-all">
-                          pk_live_abc123def456ghi789
-                        </p>
+                        <p className="font-mono text-xs break-all">No registrada</p>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Clave Privada</p>
                       <div className="p-3 bg-muted rounded-lg">
-                        <p className="font-mono text-xs">
-                          sk_live_•••••••••••••••
-                        </p>
+                        <p className="font-mono text-xs">No registrada</p>
                       </div>
                     </div>
                     <Button variant="outline" className="w-full">
@@ -315,11 +311,11 @@ export default function ConfiguracionAdmin({ onNavigate }: { onNavigate: (view: 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="text-sm">Blockchain</span>
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
                     </div>
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="text-sm">SMTP</span>
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
                     </div>
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="text-sm">SMS</span>

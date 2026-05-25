@@ -4,7 +4,7 @@ This folder contains the deployable Supabase Edge Functions for the project.
 
 ## Functions
 
-- `crypto-qr`: encrypts `{ alumno_id, empresa_id }` into a QR token.
+- `crypto-qr`: encrypts `{ alumno_id, empresa_id }` into a QR token and stores it in `qr_tokens`.
 - `verify-qr`: decrypts a QR token and validates the linked alumno/empresa pair.
 - `sign-contract`: hashes and signs a contract event, then stores it in `contratos_eventos`.
 - `verify-contract`: recalculates the hash/signature for a stored contract event.

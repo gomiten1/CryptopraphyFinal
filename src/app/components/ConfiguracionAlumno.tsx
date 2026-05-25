@@ -75,9 +75,6 @@ export default function ConfiguracionAlumno({ onNavigate }: { onNavigate: (view:
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button>Guardar Cambios</Button>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -121,9 +118,6 @@ export default function ConfiguracionAlumno({ onNavigate }: { onNavigate: (view:
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button>Actualizar Contraseña</Button>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -247,9 +241,6 @@ export default function ConfiguracionAlumno({ onNavigate }: { onNavigate: (view:
                       <Button variant="outline" className="w-full" onClick={() => onNavigate('qr-alumno')}>
                         Ver QR Completo
                       </Button>
-                      <Button variant="outline" className="w-full">
-                        Regenerar QR
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -265,9 +256,6 @@ export default function ConfiguracionAlumno({ onNavigate }: { onNavigate: (view:
                       <p className="text-sm text-yellow-700 mb-3">
                         Acciones permanentes en tu cuenta
                       </p>
-                      <Button variant="destructive" size="sm" className="w-full">
-                        Desactivar Cuenta
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

@@ -180,7 +180,7 @@ export default function LoginPage({ onNavigate }: { onNavigate: (view: string) =
                   <label className="text-sm font-medium mb-2 block">Nombre Completo</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10" placeholder="Juan Pérez" />
+                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10" placeholder="Tu nombre completo" />
                   </div>
                 </div>
               )}

@@ -53,8 +53,8 @@ export default function FormularioRegistro({ onNavigate }: { onNavigate: (view: 
                 <div className="flex items-start justify-between">
                   <div>
                     <Badge variant="secondary" className="mb-2">Proyecto seleccionado</Badge>
-                    <h3 className="text-xl font-bold mb-1">Desarrollador web frontend</h3>
-                    <p className="text-sm text-muted-foreground">TechCorp • Tecnología • Ciudad de México</p>
+                    <h3 className="text-xl font-bold mb-1">Proyecto del catálogo</h3>
+                    <p className="text-sm text-muted-foreground">Información tomada del sistema</p>
                   </div>
                 </div>
               </CardContent>

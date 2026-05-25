@@ -1,29 +1,11 @@
 import { BarChart3, TrendingUp, Users, Briefcase, CheckCircle2, Clock, Award } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
 import Sidebar from "./Sidebar";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view: string) => void }) {
-  const postulacionesMensuales = [
-    { mes: 'Ene', postulaciones: 12 },
-    { mes: 'Feb', postulaciones: 18 },
-    { mes: 'Mar', postulaciones: 25 },
-    { mes: 'Abr', postulaciones: 32 },
-    { mes: 'May', postulaciones: 28 },
-  ];
-
-  const estadoVacantes = [
-    { name: 'Activas', value: 8, color: '#819A91' },
-    { name: 'Llenas', value: 4, color: '#A7C1A8' },
-  ];
-
-  const horasPorArea = [
-    { area: 'Desarrollo', horas: 3840 },
-    { area: 'Diseño', horas: 1920 },
-    { area: 'Análisis', horas: 2400 },
-    { area: 'Soporte', horas: 1440 },
-  ];
+  const postulacionesMensuales: Array<any> = [];
+  const estadoVacantes: Array<any> = [];
+  const horasPorArea: Array<any> = [];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -47,9 +29,9 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                   </div>
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
-                <p className="text-3xl font-bold mb-1">28</p>
-                <p className="text-sm text-muted-foreground">Postulaciones este Mes</p>
-                <p className="text-xs text-green-600 mt-2">+12% vs mes anterior</p>
+                <p className="text-3xl font-bold mb-1">--</p>
+                <p className="text-sm text-muted-foreground">Postulaciones este mes</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin datos cargados</p>
               </CardContent>
             </Card>
 
@@ -60,9 +42,9 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                     <Briefcase className="w-6 h-6 text-secondary" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold mb-1">8</p>
+                <p className="text-3xl font-bold mb-1">--</p>
                 <p className="text-sm text-muted-foreground">Vacantes Activas</p>
-                <p className="text-xs text-muted-foreground mt-2">4 con cupo disponible</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin datos cargados</p>
               </CardContent>
             </Card>
 
@@ -73,9 +55,9 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                     <CheckCircle2 className="w-6 h-6 text-accent" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold mb-1">24</p>
+                <p className="text-3xl font-bold mb-1">--</p>
                 <p className="text-sm text-muted-foreground">Alumnos Activos</p>
-                <p className="text-xs text-blue-600 mt-2">1 completó recientemente</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin datos cargados</p>
               </CardContent>
             </Card>
 
@@ -86,9 +68,9 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                     <Award className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold mb-1">9.1</p>
+                <p className="text-3xl font-bold mb-1">--</p>
                 <p className="text-sm text-muted-foreground">Promedio Alumnos</p>
-                <p className="text-xs text-muted-foreground mt-2">Calificación general</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin datos cargados</p>
               </CardContent>
             </Card>
           </div>
@@ -98,53 +80,24 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
             <Card>
               <CardHeader>
                 <CardTitle>Postulaciones Mensuales</CardTitle>
-                <CardDescription>Tendencia de solicitudes recibidas</CardDescription>
+                <CardDescription>Sin historial de solicitudes cargado</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={postulacionesMensuales}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#D1D8BE" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="postulaciones"
-                      stroke="#819A91"
-                      strokeWidth={2}
-                      name="Postulaciones"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  No hay serie temporal disponible.
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Estado de Vacantes</CardTitle>
-                <CardDescription>Distribución de oportunidades</CardDescription>
+                <CardDescription>Sin distribución cargada</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={estadoVacantes}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {estadoVacantes.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  No hay distribución para mostrar.
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -153,19 +106,12 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Horas Registradas por Área</CardTitle>
-              <CardDescription>Distribución de actividades</CardDescription>
+                <CardDescription>Sin datos por área cargados</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={horasPorArea}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D8BE" />
-                  <XAxis dataKey="area" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="horas" fill="#819A91" name="Horas" />
-                </BarChart>
-              </ResponsiveContainer>
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  No hay datos de horas por área.
+                </div>
             </CardContent>
           </Card>
 
@@ -179,16 +125,16 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-primary mb-2">9,600</p>
+                <p className="text-4xl font-bold text-primary mb-2">--</p>
                 <p className="text-sm text-muted-foreground mb-4">Horas acumuladas</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Este mes:</span>
-                    <span className="font-medium">1,920 hrs</span>
+                    <span className="font-medium">--</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Promedio diario:</span>
-                    <span className="font-medium">64 hrs</span>
+                    <span className="font-medium">--</span>
                   </div>
                 </div>
               </CardContent>
@@ -202,12 +148,12 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-secondary mb-2">95%</p>
+                <p className="text-4xl font-bold text-secondary mb-2">--</p>
                 <p className="text-sm text-muted-foreground mb-4">Alumnos que completan</p>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-secondary h-2 rounded-full" style={{ width: '95%' }}></div>
+                  <div className="bg-secondary h-2 rounded-full" style={{ width: '0%' }}></div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">23 de 24 alumnos</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin datos cargados</p>
               </CardContent>
             </Card>
 
@@ -219,16 +165,16 @@ export default function EstadisticasEmpresa({ onNavigate }: { onNavigate: (view:
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-accent mb-2">89%</p>
+                <p className="text-4xl font-bold text-accent mb-2">--</p>
                 <p className="text-sm text-muted-foreground mb-4">Ocupación de cupos</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cupos totales:</span>
-                    <span className="font-medium">27</span>
+                    <span className="font-medium">--</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ocupados:</span>
-                    <span className="font-medium">24</span>
+                    <span className="font-medium">--</span>
                   </div>
                 </div>
               </CardContent>

@@ -12,7 +12,7 @@ export default function CatalogoProyectos({ onNavigate }: { onNavigate: (view: s
     {
       id: 1,
       titulo: "Desarrollador web frontend",
-      organizacion: "TechCorp",
+      organizacion: "Organización participante",
       area: "Tecnología",
       ubicacion: "Ciudad de México",
       horas: 480,

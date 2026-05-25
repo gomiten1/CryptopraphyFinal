@@ -59,12 +59,12 @@ export default function ModalVerificarEmpresa({ isOpen, onClose, empresa }: Moda
               </div>
             </div>
             {verified ? (
-              <Badge variant="success" className="gap-1">
+              <Badge variant="default" className="gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 Verificada
               </Badge>
             ) : (
-              <Badge variant="warning" className="gap-1">
+              <Badge variant="secondary" className="gap-1">
                 <AlertCircle className="w-3 h-3" />
                 Pendiente
               </Badge>
@@ -164,19 +164,19 @@ export default function ModalVerificarEmpresa({ isOpen, onClose, empresa }: Moda
               <div className="grid md:grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Número de Convenio:</span>
-                  <p className="font-medium">CONV-2024-00156</p>
+                  <p className="font-medium">No registrado</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Fecha de Inicio:</span>
-                  <p className="font-medium">01 Enero 2024</p>
+                  <p className="font-medium">No registrada</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Vigencia:</span>
-                  <p className="font-medium">Hasta 31 Dic 2026</p>
+                  <p className="font-medium">No registrada</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Estado:</span>
-                  <Badge variant={verified ? "success" : "warning"}>
+                  <Badge variant={verified ? "default" : "secondary"}>
                     {verified ? "Activo" : "Pendiente"}
                   </Badge>
                 </div>

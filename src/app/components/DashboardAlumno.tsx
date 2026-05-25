@@ -14,7 +14,7 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Mi Dashboard</h1>
-            <p className="text-muted-foreground">Bienvenido, Juan Pérez</p>
+            <p className="text-muted-foreground">Resumen general de tu servicio social</p>
           </div>
 
           {/* Stats Grid */}
@@ -25,14 +25,14 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Clock className="w-6 h-6 text-primary" />
                   </div>
-                  <Badge variant="success">Activo</Badge>
+                  <Badge variant="secondary">Sin datos</Badge>
                 </div>
-                <p className="text-2xl font-bold mb-1">480 hrs</p>
-                <p className="text-sm text-muted-foreground">Horas Acumuladas</p>
+                <p className="text-2xl font-bold mb-1">-- hrs</p>
+                <p className="text-sm text-muted-foreground">Horas registradas</p>
                 <div className="mt-4 bg-muted rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: '100%' }}></div>
+                  <div className="bg-primary h-2 rounded-full" style={{ width: '0%' }}></div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">480 / 480 horas completadas</p>
+                <p className="text-xs text-muted-foreground mt-2">Sin avance registrado todavía</p>
               </CardContent>
             </Card>
 
@@ -43,9 +43,9 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                     <Building2 className="w-6 h-6 text-secondary" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">TechCorp</p>
-                <p className="text-sm text-muted-foreground">Empresa Asignada</p>
-                <p className="text-xs text-muted-foreground mt-4">Desarrollo de Software</p>
+                <p className="text-2xl font-bold mb-1">No asignada</p>
+                <p className="text-sm text-muted-foreground">Empresa receptora</p>
+                <p className="text-xs text-muted-foreground mt-4">Pendiente de vinculación</p>
               </CardContent>
             </Card>
 
@@ -55,11 +55,11 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                   <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
                     <FileCheck className="w-6 h-6 text-accent" />
                   </div>
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <p className="text-2xl font-bold mb-1">Firmado</p>
+                <p className="text-2xl font-bold mb-1">Pendiente</p>
                 <p className="text-sm text-muted-foreground">Estado del Contrato</p>
-                <p className="text-xs text-green-600 mt-4">Verificado digitalmente</p>
+                <p className="text-xs text-muted-foreground mt-4">Sin contrato registrado todavía</p>
               </CardContent>
             </Card>
 
@@ -70,8 +70,8 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                     <TrendingUp className="w-6 h-6 text-foreground" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold mb-1">15</p>
-                <p className="text-sm text-muted-foreground">Vacantes Disponibles</p>
+                <p className="text-2xl font-bold mb-1">--</p>
+                <p className="text-sm text-muted-foreground">Vacantes disponibles</p>
                 <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto" onClick={() => onNavigate('vacantes-alumno')}>
                   Ver todas →
                 </Button>
@@ -93,27 +93,27 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Matrícula</p>
-                      <p className="font-medium">A2021001234</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Carrera</p>
-                      <p className="font-medium">Ingeniería en Sistemas</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Semestre</p>
-                      <p className="font-medium">8vo Semestre</p>
+                      <p className="font-medium">No registrado</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Promedio</p>
-                      <p className="font-medium">9.2</p>
+                      <p className="font-medium">No registrado</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Fecha de Inicio</p>
-                      <p className="font-medium">15 Enero 2024</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Fecha de Fin</p>
-                      <p className="font-medium">15 Julio 2024</p>
+                      <p className="font-medium">No registrada</p>
                     </div>
                   </div>
                 </CardContent>
@@ -126,21 +126,8 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                   <CardDescription>Historial de eventos y acciones</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { date: '18 May 2026', event: 'Contrato digital firmado', status: 'success' },
-                      { date: '15 May 2026', event: 'Registro de 40 horas completado', status: 'success' },
-                      { date: '10 May 2026', event: 'Asignado a TechCorp', status: 'success' },
-                      { date: '05 May 2026', event: 'Solicitud de vacante aprobada', status: 'success' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-4">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${item.status === 'success' ? 'bg-green-600' : 'bg-yellow-600'}`}></div>
-                        <div className="flex-1">
-                          <p className="font-medium">{item.event}</p>
-                          <p className="text-xs text-muted-foreground">{item.date}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                    Aún no hay actividad registrada.
                   </div>
                 </CardContent>
               </Card>
@@ -166,11 +153,11 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Hash:</span>
-                      <span className="font-mono text-xs">a3f8...9e2c</span>
+                      <span className="font-mono text-xs">No generado</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Válido hasta:</span>
-                      <span>18 Jun 2026</span>
+                      <span>Pendiente</span>
                     </div>
                   </div>
                   <Button className="w-full mt-4" onClick={() => onNavigate('qr-alumno')}>
@@ -190,23 +177,23 @@ export default function DashboardAlumno({ onNavigate }: { onNavigate: (view: str
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="p-4 bg-muted/40 border rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-green-900">Verificado</span>
+                        <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
+                        <span className="font-medium">Pendiente</span>
                       </div>
-                      <p className="text-sm text-green-700">
-                        Firma digital válida
+                      <p className="text-sm text-muted-foreground">
+                        Aún no hay contrato firmado.
                       </p>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Firmado:</span>
-                        <span>18 May 2026</span>
+                        <span>Pendiente</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Hash SHA-256:</span>
-                        <span className="font-mono text-xs">7d9f...4a1b</span>
+                        <span className="font-mono text-xs">No generado</span>
                       </div>
                     </div>
                     <Button variant="outline" className="w-full" onClick={() => onNavigate('contrato')}>

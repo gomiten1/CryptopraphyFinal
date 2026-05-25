@@ -42,8 +42,8 @@ export default function LandingPage({ onNavigate }: { onNavigate: (view: string)
                 Comenzar Ahora
                 <ArrowRight className="w-4 h-4" />
               </Button>
-              <Button size="lg" variant="outline">
-                Ver Demo
+              <Button size="lg" variant="outline" onClick={() => onNavigate('catalogo')}>
+                Explorar catálogo
               </Button>
             </div>
           </div>
@@ -146,12 +146,12 @@ export default function LandingPage({ onNavigate }: { onNavigate: (view: string)
       {/* Stats */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <div className="grid md:grid-cols-4 gap-8">
-          {[
-            { label: "Estudiantes Activos", value: "2,547" },
-            { label: "Empresas Registradas", value: "156" },
-            { label: "Vacantes Disponibles", value: "89" },
-            { label: "Contratos Firmados", value: "1,823" }
-          ].map((stat, idx) => (
+            {[
+              { label: "Estudiantes activos", value: "--" },
+              { label: "Empresas registradas", value: "--" },
+              { label: "Vacantes disponibles", value: "--" },
+              { label: "Contratos firmados", value: "--" }
+            ].map((stat, idx) => (
             <Card key={idx}>
               <CardContent className="p-6 text-center">
                 <p className="text-4xl font-bold text-primary mb-2">{stat.value}</p>
