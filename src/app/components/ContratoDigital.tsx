@@ -123,15 +123,6 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
   const contractHash = result?.verification?.hash_sha256 || result?.record?.hash_sha256 || 'Pendiente';
   const contractSignature = result?.verification?.firma_digital || result?.record?.firma_digital || 'Pendiente';
 
-  const handlePreviewSignature = () => {
-    setError(null);
-    if (!result) {
-      setError('No hay firma registrada todavía. Firma el contrato primero para poder validar.');
-      return;
-    }
-    // Si ya existe `result`, por ahora mostramos la información ya disponible.
-  };
-
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar userType="alumno" onNavigate={onNavigate} currentView="contrato" />
@@ -310,10 +301,6 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   <Button className="flex-1" onClick={handleSignContract} disabled={signing || loadingProfile}>
                     {signing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                     {signing ? 'Firmando...' : 'Firmar y registrar'}
-                  </Button>
-                  <Button variant="outline" onClick={handlePreviewSignature} disabled={signing || loadingProfile}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Validar firma
                   </Button>
                 </div>
               </CardContent>
