@@ -11,6 +11,10 @@ type ContractRow = {
   id: string;
   alumno_id: string | null;
   empresa_id: string | null;
+  vacante_id: string | null;
+  estado: 'pendiente' | 'aprobado' | 'rechazado' | null;
+  aprobado_en: string | null;
+  aprobado_por: string | null;
   json_datos: Record<string, unknown> | null;
   hash_sha256: string | null;
   firma_digital: string | null;
@@ -35,13 +39,25 @@ type VerifyContractResult = {
   error?: string;
 };
 
+type ApproveContractResult = {
+  approved?: boolean;
+  already_approved?: boolean;
+  horas_sumadas?: number;
+  horas_aprobadas?: number;
+  horas_objetivo?: number;
+  estado?: string;
+  error?: string;
+};
+
 export default function Auditoria({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [contracts, setContracts] = useState<ContractRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [verificationById, setVerificationById] = useState<Record<string, VerifyContractResult>>({});
+  const [approvalById, setApprovalById] = useState<Record<string, ApproveContractResult>>({});
 
   const loadContracts = async () => {
     setLoading(true);
@@ -49,7 +65,7 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
 
     const { data, error: fetchError } = await supabase
       .from('contratos_eventos')
-      .select('id, alumno_id, empresa_id, json_datos, hash_sha256, firma_digital, creado_en')
+      .select('id, alumno_id, empresa_id, vacante_id, estado, aprobado_en, aprobado_por, json_datos, hash_sha256, firma_digital, creado_en')
       .order('creado_en', { ascending: false });
 
     if (fetchError) {
@@ -60,6 +76,52 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
     }
 
     setLoading(false);
+  };
+
+  const handleApproveContract = async (contract: ContractRow) => {
+    setApprovingId(contract.id);
+    setError(null);
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke<ApproveContractResult>('approve-contract', {
+        body: { contract_id: contract.id },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      const nextResult = data ?? { approved: false, error: 'No response from approve-contract' };
+
+      setApprovalById((current) => ({
+        ...current,
+        [contract.id]: nextResult,
+      }));
+
+      if (nextResult.approved) {
+        setContracts((current) =>
+          current.map((item) =>
+            item.id === contract.id
+              ? {
+                  ...item,
+                  estado: 'aprobado',
+                  aprobado_en: new Date().toISOString(),
+                }
+              : item,
+          ),
+        );
+      }
+    } catch (invokeError) {
+      setApprovalById((current) => ({
+        ...current,
+        [contract.id]: {
+          approved: false,
+          error: invokeError instanceof Error ? invokeError.message : 'No se pudo aprobar el contrato',
+        },
+      }));
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   useEffect(() => {
@@ -275,11 +337,18 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                 <div className="space-y-3">
                   {filteredContracts.map((contract) => {
                     const result = verificationById[contract.id];
+                    const approval = approvalById[contract.id];
                     const statusBadge = result
                       ? result.verified
                         ? <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3" />Íntegro</Badge>
                         : <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />Alterado</Badge>
                       : <Badge variant="outline">Sin verificar</Badge>;
+
+                    const approvalBadge = contract.estado === 'aprobado'
+                      ? <Badge variant="success">Aprobado</Badge>
+                      : contract.estado === 'rechazado'
+                        ? <Badge variant="destructive">Rechazado</Badge>
+                        : <Badge variant="secondary">Pendiente admin</Badge>;
 
                     return (
                       <div key={contract.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/5 transition-colors">
@@ -299,11 +368,21 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                                 <span>{contract.creado_en || 'Sin fecha'}</span>
                                 <span>•</span>
                                 <span className="font-mono text-xs">Hash: {contract.hash_sha256?.slice(0, 16) ?? 'Pendiente'}</span>
+                                <span>•</span>
+                                {approvalBadge}
                               </div>
                               {result?.error && <p className="text-sm text-red-600 mt-2">{result.error}</p>}
+                              {approval?.error && <p className="text-sm text-red-600 mt-2">{approval.error}</p>}
                               {result?.matches && (
                                 <p className="text-xs text-muted-foreground mt-2">
                                   Hash {result.matches.hash_sha256 ? 'coincide' : 'no coincide'} · Firma {result.matches.firma_digital ? 'coincide' : 'no coincide'}
+                                </p>
+                              )}
+                              {approval?.approved && (
+                                <p className="text-xs text-green-700 mt-2">
+                                  {approval.already_approved
+                                    ? `Contrato ya aprobado previamente. Horas acumuladas: ${approval.horas_aprobadas ?? 0}`
+                                    : `Aprobado. Se sumaron ${approval.horas_sumadas ?? 0} horas. Acumulado: ${approval.horas_aprobadas ?? 0}/${approval.horas_objetivo ?? 480}`}
                                 </p>
                               )}
                             </div>
@@ -314,6 +393,14 @@ export default function Auditoria({ onNavigate }: { onNavigate: (view: string) =
                           <Button variant="outline" size="sm" onClick={() => handleVerifyContract(contract)} disabled={verifyingId === contract.id}>
                             {verifyingId === contract.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
                             Verificar
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveContract(contract)}
+                            disabled={approvingId === contract.id || contract.estado === 'aprobado'}
+                          >
+                            {approvingId === contract.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                            {contract.estado === 'aprobado' ? 'Ya aprobado' : 'Aprobar y aplicar'}
                           </Button>
                         </div>
                       </div>

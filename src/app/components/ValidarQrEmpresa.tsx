@@ -31,13 +31,68 @@ type VerifyQrResult = {
   error?: string;
 };
 
+type QrTokenRow = {
+  id: string;
+  alumno_id: string | null;
+  empresa_id: string | null;
+  token: string;
+  payload: Record<string, unknown> | null;
+  creado_en: string | null;
+  validado_en: string | null;
+  validado_por: string | null;
+};
+
+function getVerifyQrErrorMessage(data: VerifyQrResult | null | undefined, error: unknown) {
+  const functionError = data?.error;
+
+  if (typeof functionError === 'string' && functionError.trim()) {
+    if (functionError === 'Invalid encrypted payload format') {
+      return 'El token QR no es válido o está corrupto.';
+    }
+
+    if (functionError === 'Request body must be valid JSON' || functionError === 'Expected a JSON object') {
+      return 'El token QR no tiene un formato válido.';
+    }
+
+    return functionError;
+  }
+
+  if (error instanceof Error && error.message === 'Edge Function returned a non-2xx status code') {
+    return 'El token QR no es válido o está corrupto.';
+  }
+
+  return error instanceof Error ? error.message : 'No se pudo validar el QR';
+}
+
 export default function ValidarQrEmpresa({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingTokens, setLoadingTokens] = useState(false);
   const [token, setToken] = useState('');
   const [result, setResult] = useState<VerifyQrResult | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingTokens, setPendingTokens] = useState<QrTokenRow[]>([]);
+
+  const loadPendingTokens = async (empresaId: string) => {
+    setLoadingTokens(true);
+
+    const { data, error: tokensError } = await supabase
+      .from('qr_tokens')
+      .select('id, alumno_id, empresa_id, token, payload, creado_en, validado_en, validado_por')
+      .eq('empresa_id', empresaId)
+      .is('validado_en', null)
+      .order('creado_en', { ascending: false });
+
+    if (tokensError) {
+      setError(tokensError.message);
+      setPendingTokens([]);
+    } else {
+      setPendingTokens((data ?? []) as QrTokenRow[]);
+    }
+
+    setLoadingTokens(false);
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -61,6 +116,7 @@ export default function ValidarQrEmpresa({ onNavigate }: { onNavigate: (view: st
         setError(profileError.message);
       } else {
         setProfile(data as ProfileRow);
+        void loadPendingTokens((data as ProfileRow).id);
       }
 
       setLoadingProfile(false);
@@ -90,12 +146,17 @@ export default function ValidarQrEmpresa({ onNavigate }: { onNavigate: (view: st
       });
 
       if (invokeError) {
-        throw invokeError;
+        setResult(data ?? null);
+        throw new Error(getVerifyQrErrorMessage(data, invokeError));
       }
 
-      setResult(data ?? { verified: false, error: 'No response from verify-qr' });
+      const nextResult = data ?? { verified: false, error: 'No response from verify-qr' };
+      setResult(nextResult);
+
+      if (nextResult.verified) {
+        await loadPendingTokens(profile.id);
+      }
     } catch (invokeError) {
-      setResult(null);
       setError(invokeError instanceof Error ? invokeError.message : 'No se pudo validar el QR');
     } finally {
       setVerifying(false);
@@ -169,6 +230,43 @@ export default function ValidarQrEmpresa({ onNavigate }: { onNavigate: (view: st
                   Limpiar
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="w-5 h-5" />
+                QR pendientes de validar
+              </CardTitle>
+              <CardDescription>
+                Sólo aparecen los tokens de tu empresa que todavía no tienen validación registrada.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTokens ? (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Cargando QR pendientes...</div>
+              ) : pendingTokens.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No hay QR pendientes para tu empresa.</div>
+              ) : (
+                <div className="grid gap-3">
+                  {pendingTokens.map((item) => (
+                    <div key={item.id} className="rounded-lg border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Pendiente</Badge>
+                          <span className="text-sm font-medium break-all">{item.alumno_id || 'Alumno no registrado'}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground break-all font-mono">{item.token}</p>
+                        <p className="text-xs text-muted-foreground">Generado: {item.creado_en || 'No registrado'}</p>
+                      </div>
+                      <Button variant="outline" onClick={() => setToken(item.token)}>
+                        Usar token
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

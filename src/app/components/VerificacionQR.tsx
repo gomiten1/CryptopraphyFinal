@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { QrCode, CheckCircle2, Shield, User, Calendar, Scan, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { QrCode, CheckCircle2, Shield, User, Calendar, Scan, XCircle, Loader2, RefreshCw, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import Sidebar from "./Sidebar";
 import supabase from "../lib/supabase";
 
@@ -18,14 +20,59 @@ type QrPayload = {
   token: string;
 };
 
+type QrTokenRow = {
+  id: string;
+  alumno_id: string | null;
+  empresa_id: string | null;
+  vacante_id: string | null;
+  token: string;
+  payload: Record<string, unknown> | null;
+  creado_en: string | null;
+  validado_en: string | null;
+  validado_por: string | null;
+};
+
+type VacancyRow = {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  empresa_id: string | null;
+  cupo_disponible: number | null;
+};
+
 export default function VerificacionQR({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingTokens, setLoadingTokens] = useState(false);
+  const [loadingVacancies, setLoadingVacancies] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [empresaId, setEmpresaId] = useState('');
+  const [selectedVacancyId, setSelectedVacancyId] = useState('');
+  const [vacancies, setVacancies] = useState<VacancyRow[]>([]);
   const [token, setToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [qrTokens, setQrTokens] = useState<QrTokenRow[]>([]);
+  const qrCodeRef = useRef<HTMLDivElement | null>(null);
+
+  const loadQrTokens = async (alumnoId: string) => {
+    setLoadingTokens(true);
+
+    const { data, error: tokensError } = await supabase
+      .from('qr_tokens')
+      .select('id, alumno_id, empresa_id, vacante_id, token, payload, creado_en, validado_en, validado_por')
+      .eq('alumno_id', alumnoId)
+      .order('creado_en', { ascending: false });
+
+    if (tokensError) {
+      setError(tokensError.message);
+      setQrTokens([]);
+    } else {
+      setQrTokens((data ?? []) as QrTokenRow[]);
+    }
+
+    setLoadingTokens(false);
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -49,6 +96,7 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
         setError(profileError.message);
       } else {
         setProfile(data as ProfileRow);
+        void loadQrTokens((data as ProfileRow).id);
       }
 
       setLoadingProfile(false);
@@ -57,13 +105,29 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
     loadProfile();
   }, []);
 
-  const qrPattern = useMemo(() => {
-    const source = token || profile?.id || 'qr';
-    return Array.from({ length: 64 }, (_, index) => {
-      const charCode = source.charCodeAt(index % source.length) || 31;
-      return (charCode + index) % 3 === 0;
-    });
-  }, [token, profile?.id]);
+  useEffect(() => {
+    const loadVacancies = async () => {
+      setLoadingVacancies(true);
+
+      const { data, error: vacanciesError } = await supabase
+        .from('vacantes')
+        .select('id,titulo,descripcion,empresa_id,cupo_disponible')
+        .eq('activo', true)
+        .gt('cupo_disponible', 0)
+        .order('creado_en', { ascending: false });
+
+      if (vacanciesError) {
+        setError(vacanciesError.message);
+        setVacancies([]);
+      } else {
+        setVacancies((data ?? []) as VacancyRow[]);
+      }
+
+      setLoadingVacancies(false);
+    };
+
+    loadVacancies();
+  }, []);
 
   const handleGenerateQr = async () => {
     setGenerating(true);
@@ -79,10 +143,15 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
         throw new Error('Ingresa el ID de la empresa receptora.');
       }
 
+      if (!selectedVacancyId.trim()) {
+        throw new Error('Selecciona una vacante para generar el QR asociado.');
+      }
+
       const { data, error: invokeError } = await supabase.functions.invoke<QrPayload>('crypto-qr', {
         body: {
           alumno_id: alumnoId,
           empresa_id: empresaId.trim(),
+          vacante_id: selectedVacancyId,
         },
       });
 
@@ -96,11 +165,51 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
 
       setToken(data.token);
       setGeneratedAt(new Date().toLocaleString('es-MX'));
+      if (profile?.id) {
+        await loadQrTokens(profile.id);
+      }
     } catch (invokeError) {
       setError(invokeError instanceof Error ? invokeError.message : 'No se pudo generar el QR');
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleVacancyChange = (vacancyId: string) => {
+    setSelectedVacancyId(vacancyId);
+
+    if (!vacancyId) {
+      setEmpresaId('');
+      return;
+    }
+
+    const selectedVacancy = vacancies.find((vacancy) => vacancy.id === vacancyId);
+    setEmpresaId(selectedVacancy?.empresa_id ?? '');
+  };
+
+  const handleDownloadQr = () => {
+    if (!token) {
+      setError('Genera primero un QR para poder descargarlo.');
+      return;
+    }
+
+    const svgElement = qrCodeRef.current?.querySelector('svg');
+    if (!svgElement) {
+      setError('No se encontró el QR para descargarlo.');
+      return;
+    }
+
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = objectUrl;
+    downloadLink.download = `qr-token-${new Date().toISOString().replace(/[:.]/g, '-')}.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    URL.revokeObjectURL(objectUrl);
   };
 
   return (
@@ -135,21 +244,23 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                 {/* QR Code Visual */}
                 <div className="relative">
                   <div className="aspect-square bg-white rounded-xl p-8 border-4 border-primary/20 mb-6">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-lg flex items-center justify-center relative overflow-hidden">
-                      {/* QR Pattern Simulation */}
-                      <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 gap-1 p-4">
-                        {qrPattern.map((active, i) => (
-                          <div
-                            key={i}
-                            className={`rounded-sm ${
-                              active ? 'bg-foreground' : 'bg-transparent'
-                            }`}
+                    <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-lg flex items-center justify-center relative overflow-hidden p-4">
+                      {token ? (
+                        <div ref={qrCodeRef} className="bg-white rounded-xl p-4 shadow-lg ring-1 ring-black/5">
+                          <QRCodeSVG
+                            value={token}
+                            size={240}
+                            level="M"
+                            includeMargin={true}
+                            bgColor="#FFFFFF"
+                            fgColor="#111827"
                           />
-                        ))}
-                      </div>
-                      <div className="relative z-10 w-32 h-32 bg-white rounded-lg flex items-center justify-center shadow-lg">
-                        <Shield className="w-16 h-16 text-primary" />
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center shadow-lg">
+                          <Shield className="w-16 h-16 text-primary" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -169,6 +280,13 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                     <p className="font-mono text-xs break-all min-h-10">
                       {token || 'Genera el QR para ver aquí el token cifrado.'}
                     </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1" onClick={handleDownloadQr} disabled={!token}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Descargar QR
+                    </Button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -192,10 +310,28 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
 
                   <div className="space-y-3">
                     <div>
+                      <p className="text-sm text-muted-foreground mb-2">Selecciona una vacante publicada</p>
+                      <Select value={selectedVacancyId} onValueChange={handleVacancyChange} disabled={loadingVacancies}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingVacancies ? 'Cargando vacantes...' : 'Elige una vacante'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vacancies.map((vacancy) => (
+                            <SelectItem key={vacancy.id} value={vacancy.id}>
+                              {vacancy.titulo} {vacancy.empresa_id ? `· ${vacancy.empresa_id}` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <p className="text-sm text-muted-foreground mb-2">ID de la empresa receptora</p>
                       <Input
                         value={empresaId}
-                        onChange={(e) => setEmpresaId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedVacancyId('');
+                          setEmpresaId(e.target.value);
+                        }}
                         placeholder="UUID de la empresa"
                       />
                     </div>
@@ -298,13 +434,30 @@ export default function VerificacionQR({ onNavigate }: { onNavigate: (view: stri
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    Historial de Verificaciones
+                    Historial de QR
                   </CardTitle>
+                  <CardDescription>Estado real de tus QR generados y si ya fueron validados por la empresa.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                    Sin verificaciones registradas todavía para este QR.
-                  </div>
+                  {loadingTokens ? (
+                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Cargando historial...</div>
+                  ) : qrTokens.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Aún no has generado QR para validar.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {qrTokens.map((item) => (
+                        <div key={item.id} className="rounded-lg border p-4 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={item.validado_en ? 'default' : 'secondary'}>{item.validado_en ? 'Validado' : 'Pendiente'}</Badge>
+                            <span className="text-sm font-medium break-all">Empresa: {item.empresa_id || 'No registrada'}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground break-all font-mono">{item.token}</p>
+                          <p className="text-xs text-muted-foreground">Generado: {item.creado_en || 'No registrado'}</p>
+                          <p className="text-xs text-muted-foreground">Validado: {item.validado_en || 'Aún no validado'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

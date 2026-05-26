@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import Sidebar from "./Sidebar";
 import supabase from "../lib/supabase";
@@ -33,17 +34,113 @@ type ContractResult = {
   error?: string;
 };
 
+type VerifiedVacancyOption = {
+  id: string;
+  titulo: string;
+  empresa_id: string;
+  validado_en: string;
+};
+
 export default function ContratoDigital({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingVacancies, setLoadingVacancies] = useState(false);
   const [signing, setSigning] = useState(false);
-  const [empresaId, setEmpresaId] = useState('');
+  const [verifiedVacancies, setVerifiedVacancies] = useState<VerifiedVacancyOption[]>([]);
+  const [selectedVacancyId, setSelectedVacancyId] = useState('');
   const [hours, setHours] = useState('4');
-  const [activity, setActivity] = useState('Asistencia y registro de actividades');
+  const [activity, setActivity] = useState('');
   const [notes, setNotes] = useState('');
   const [signedAt, setSignedAt] = useState<string | null>(null);
   const [result, setResult] = useState<ContractResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedVacancy = verifiedVacancies.find((vacancy) => vacancy.id === selectedVacancyId) ?? null;
+
+  const loadVerifiedVacancies = async (alumnoId: string) => {
+    setLoadingVacancies(true);
+
+    const { data: tokenRows, error: tokensError } = await supabase
+      .from('qr_tokens')
+      .select('vacante_id, validado_en')
+      .eq('alumno_id', alumnoId)
+      .not('vacante_id', 'is', null)
+      .not('validado_en', 'is', null)
+      .order('validado_en', { ascending: false });
+
+    if (tokensError) {
+      setError(tokensError.message);
+      setVerifiedVacancies([]);
+      setSelectedVacancyId('');
+      setLoadingVacancies(false);
+      return;
+    }
+
+    const orderedVacancyIds: string[] = [];
+    for (const row of tokenRows ?? []) {
+      const vacancyId = typeof row.vacante_id === 'string' ? row.vacante_id : '';
+      if (vacancyId && !orderedVacancyIds.includes(vacancyId)) {
+        orderedVacancyIds.push(vacancyId);
+      }
+    }
+
+    if (orderedVacancyIds.length === 0) {
+      setVerifiedVacancies([]);
+      setSelectedVacancyId('');
+      setLoadingVacancies(false);
+      return;
+    }
+
+    const { data: vacanciesData, error: vacanciesError } = await supabase
+      .from('vacantes')
+      .select('id, titulo, empresa_id')
+      .in('id', orderedVacancyIds);
+
+    if (vacanciesError) {
+      setError(vacanciesError.message);
+      setVerifiedVacancies([]);
+      setSelectedVacancyId('');
+      setLoadingVacancies(false);
+      return;
+    }
+
+    const vacancyById = new Map<string, { id: string; titulo: string; empresa_id: string | null }>();
+    for (const vacancy of vacanciesData ?? []) {
+      vacancyById.set(vacancy.id, vacancy);
+    }
+
+    const normalized = orderedVacancyIds
+      .map((id) => {
+        const vacancy = vacancyById.get(id);
+        if (!vacancy || !vacancy.empresa_id) {
+          return null;
+        }
+
+        const tokenMatch = (tokenRows ?? []).find((row) => row.vacante_id === id && typeof row.validado_en === 'string');
+        if (!tokenMatch || typeof tokenMatch.validado_en !== 'string') {
+          return null;
+        }
+
+        return {
+          id: vacancy.id,
+          titulo: vacancy.titulo,
+          empresa_id: vacancy.empresa_id,
+          validado_en: tokenMatch.validado_en,
+        } as VerifiedVacancyOption;
+      })
+      .filter((value): value is VerifiedVacancyOption => value !== null);
+
+    setVerifiedVacancies(normalized);
+    setSelectedVacancyId((previous) => {
+      if (previous && normalized.some((vacancy) => vacancy.id === previous)) {
+        return previous;
+      }
+
+      return normalized[0]?.id ?? '';
+    });
+
+    setLoadingVacancies(false);
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -67,6 +164,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
         setError(profileError.message);
       } else {
         setProfile(data as ProfileRow);
+        await loadVerifiedVacancies((data as ProfileRow).id);
       }
 
       setLoadingProfile(false);
@@ -84,17 +182,20 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
         throw new Error('No se encontró tu perfil de alumno.');
       }
 
-      if (!empresaId.trim()) {
-        throw new Error('Ingresa el ID de la empresa receptora.');
+      if (!selectedVacancy?.id || !selectedVacancy.empresa_id) {
+        throw new Error('Selecciona una vacante ya verificada para firmar el contrato.');
       }
 
       const payload = {
         alumno_id: profile.id,
-        empresa_id: empresaId.trim(),
+        empresa_id: selectedVacancy.empresa_id,
+        vacante_id: selectedVacancy.id,
         json_datos: {
           alumno_id: profile.id,
           alumno_nombre: profile.full_name,
-          empresa_id: empresaId.trim(),
+          empresa_id: selectedVacancy.empresa_id,
+          vacante_id: selectedVacancy.id,
+          vacante_titulo: selectedVacancy.titulo,
           horas: Number(hours) || 0,
           actividad: activity,
           notas: notes,
@@ -131,7 +232,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
     },
     {
       name: profile?.metadata?.supervisor ? String(profile.metadata.supervisor) : 'Supervisor no registrado',
-      subtitle: empresaId || 'Empresa receptora',
+      subtitle: selectedVacancy?.empresa_id || 'Empresa receptora',
       colorClass: 'bg-secondary/10 text-secondary',
       verified: Boolean(result),
     },
@@ -237,16 +338,16 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                         <p className="font-medium">DATOS DE LA EMPRESA</p>
                         <div className="grid grid-cols-2 gap-3 pl-4 mt-2">
                           <div>
-                            <p className="text-muted-foreground text-xs">Razón Social:</p>
-                            <p>{empresaId || 'Pendiente'}</p>
+                            <p className="text-muted-foreground text-xs">Empresa receptora:</p>
+                            <p>{selectedVacancy?.empresa_id || 'Pendiente'}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">RFC:</p>
                             <p>{profile?.metadata?.company_rfc ? String(profile.metadata.company_rfc) : 'No registrado'}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground text-xs">Área:</p>
-                            <p>{activity}</p>
+                            <p className="text-muted-foreground text-xs">Vacante:</p>
+                            <p>{selectedVacancy?.titulo || 'Pendiente'}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground text-xs">Supervisor:</p>
@@ -268,7 +369,7 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                       <div className="border-t pt-4 mt-4">
                         <p className="font-medium">ACTIVIDADES A REALIZAR</p>
                         <ul className="pl-8 mt-2 space-y-1 list-disc">
-                          <li>{activity}</li>
+                          <li>{activity || 'Sin actividad registrada'}</li>
                           <li>{notes || 'Sin observaciones adicionales'}</li>
                         </ul>
                       </div>
@@ -286,8 +387,30 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
 
                 <div className="grid md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">ID de la empresa receptora</p>
-                    <Input value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} placeholder="UUID de la empresa" />
+                    <p className="text-sm text-muted-foreground mb-2">Vacante verificada</p>
+                    <Select value={selectedVacancyId} onValueChange={setSelectedVacancyId} disabled={loadingVacancies || loadingProfile}>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            loadingVacancies
+                              ? 'Cargando vacantes verificadas...'
+                              : 'Selecciona la vacante en la que ya trabajas'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {verifiedVacancies.map((vacancy) => (
+                          <SelectItem key={vacancy.id} value={vacancy.id}>
+                            {vacancy.titulo} · {vacancy.empresa_id.slice(0, 8)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {verifiedVacancies.length === 0 && !loadingVacancies && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        No hay vacantes verificadas para tu cuenta. Primero valida tu QR con la empresa.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Horas registradas</p>
@@ -295,7 +418,11 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-sm text-muted-foreground mb-2">Actividad</p>
-                    <Input value={activity} onChange={(e) => setActivity(e.target.value)} />
+                    <Input
+                      value={activity}
+                      onChange={(e) => setActivity(e.target.value)}
+                      placeholder="Asistencia y registro de actividades"
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-sm text-muted-foreground mb-2">Notas</p>
@@ -317,9 +444,21 @@ export default function ContratoDigital({ onNavigate }: { onNavigate: (view: str
                   </div>
                 )}
                 <div className="flex gap-3 mt-6">
-                  <Button className="flex-1" onClick={handleSignContract} disabled={signing || loadingProfile}>
+                  <Button className="flex-1" onClick={handleSignContract} disabled={signing || loadingProfile || loadingVacancies || !selectedVacancyId}>
                     {signing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                     {signing ? 'Firmando...' : 'Firmar y registrar'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (profile?.id) {
+                        void loadVerifiedVacancies(profile.id);
+                      }
+                    }}
+                    disabled={loadingVacancies || loadingProfile}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${loadingVacancies ? 'animate-spin' : ''}`} />
+                    Actualizar vacantes
                   </Button>
                 </div>
               </CardContent>

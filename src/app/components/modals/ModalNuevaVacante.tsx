@@ -3,14 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useState } from "react";
+import supabase from "../../lib/supabase";
 
 interface ModalNuevaVacanteProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: () => void;
 }
 
-export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacanteProps) {
+export default function ModalNuevaVacante({ isOpen, onClose, onCreated }: ModalNuevaVacanteProps) {
   const [step, setStep] = useState<'form' | 'success'>('form');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     area: '',
@@ -23,9 +27,39 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep('success');
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (!userId) {
+        throw new Error('No hay sesión activa para publicar la vacante.');
+      }
+
+      const { error } = await supabase.from('vacantes').insert({
+        empresa_id: userId,
+        titulo: formData.title.trim(),
+        descripcion: [formData.area.trim(), formData.description.trim(), formData.requirements.trim()].filter(Boolean).join('\n\n'),
+        cupo_total: Number(formData.slots),
+        cupo_disponible: Number(formData.slots),
+        activo: true,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setStep('success');
+      onCreated?.();
+    } catch (submitError) {
+      setSubmitError(submitError instanceof Error ? submitError.message : 'No se pudo publicar la vacante.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -48,6 +82,12 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
         <CardContent className="p-6">
           {step === 'form' && (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {submitError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {submitError}
+                </div>
+              )}
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Título de la Vacante *</label>
                 <Input
@@ -138,9 +178,9 @@ export default function ModalNuevaVacante({ isOpen, onClose }: ModalNuevaVacante
                 <Button type="button" variant="outline" onClick={onClose} className="flex-1">
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1" disabled={submitting}>
                   <Briefcase className="w-4 h-4 mr-2" />
-                  Publicar Vacante
+                  {submitting ? 'Publicando...' : 'Publicar Vacante'}
                 </Button>
               </div>
             </form>

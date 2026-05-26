@@ -5,37 +5,68 @@ import { Button } from "./ui/button";
 import Sidebar from "./Sidebar";
 import ModalNuevaVacante from "./modals/ModalNuevaVacante";
 import ModalSolicitudes from "./modals/ModalSolicitudes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import supabase from "../lib/supabase";
+
+type VacancyRow = {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  cupo_total: number | null;
+  cupo_disponible: number | null;
+  empresa_id: string | null;
+  creado_en: string | null;
+  activo: boolean | null;
+};
 
 export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: string) => void }) {
   const [modalNuevaOpen, setModalNuevaOpen] = useState(false);
   const [modalSolicitudesOpen, setModalSolicitudesOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<any>(null);
-  const vacantesActivas: Array<{
-    id: number;
-    title: string;
-    area: string;
-    applicants: number;
-    slots: number;
-    filled: number;
-    status: 'active' | 'filled';
-    location: string;
-    hours: number;
-  }> = [];
+  const [vacancies, setVacancies] = useState<VacancyRow[]>([]);
+  const [loadingVacancies, setLoadingVacancies] = useState(true);
+  const [vacancyError, setVacancyError] = useState<string | null>(null);
 
-  const vacantesCerradas: Array<{
-    id: number;
-    title: string;
-    area: string;
-    applicants: number;
-    slots: number;
-    filled: number;
-    status: 'closed';
-  }> = [];
+  const loadVacancies = async () => {
+    setLoadingVacancies(true);
+    setVacancyError(null);
 
-  const totalApplicants = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.applicants, 0);
-  const totalFilled = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.filled, 0);
-  const totalSlots = vacantesActivas.reduce((acc, vacancy) => acc + vacancy.slots, 0);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+
+    if (!userId) {
+      setVacancyError('No hay sesión activa.');
+      setVacancies([]);
+      setLoadingVacancies(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('vacantes')
+      .select('id,titulo,descripcion,cupo_total,cupo_disponible,empresa_id,creado_en,activo')
+      .eq('empresa_id', userId)
+      .order('creado_en', { ascending: false });
+
+    if (error) {
+      setVacancyError(error.message);
+      setVacancies([]);
+    } else {
+      setVacancies((data ?? []) as VacancyRow[]);
+    }
+
+    setLoadingVacancies(false);
+  };
+
+  useEffect(() => {
+    loadVacancies();
+  }, []);
+
+  const vacantesActivas = vacancies.filter((vacancy) => vacancy.activo !== false);
+  const vacantesCerradas = vacancies.filter((vacancy) => vacancy.activo === false);
+
+  const totalApplicants = 0;
+  const totalFilled = vacantesActivas.reduce((acc, vacancy) => acc + ((vacancy.cupo_total ?? 0) - (vacancy.cupo_disponible ?? 0)), 0);
+  const totalSlots = vacantesActivas.reduce((acc, vacancy) => acc + (vacancy.cupo_total ?? 0), 0);
   const occupancy = totalSlots > 0 ? Math.round((totalFilled / totalSlots) * 100) : 0;
 
   return (
@@ -124,7 +155,15 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
               </div>
             </CardHeader>
             <CardContent>
-              {vacantesActivas.length === 0 ? (
+              {loadingVacancies ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Cargando vacantes...
+                </div>
+              ) : vacancyError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                  {vacancyError}
+                </div>
+              ) : vacantesActivas.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                   No hay vacantes activas registradas.
                 </div>
@@ -139,19 +178,19 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                             <Briefcase className="w-6 h-6 text-primary" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-lg mb-1">{vacancy.title}</h3>
+                            <h3 className="font-semibold text-lg mb-1">{vacancy.titulo}</h3>
                             <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Briefcase className="w-4 h-4" />
-                                {vacancy.area}
+                                {vacancy.descripcion?.split('\n\n')[0] || 'General'}
                               </span>
                               <span className="flex items-center gap-1">
                                 <MapPin className="w-4 h-4" />
-                                {vacancy.location}
+                                Consultar con la empresa
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {vacancy.hours} hrs
+                                {vacancy.cupo_total ?? 0} cupos
                               </span>
                             </div>
                           </div>
@@ -171,26 +210,26 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                         <p className="text-sm text-muted-foreground mb-1">Solicitudes</p>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-primary" />
-                          <span className="font-semibold">{vacancy.applicants} postulaciones</span>
+                          <span className="font-semibold">0 postulaciones</span>
                         </div>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Cupos</p>
                         <div className="flex items-center gap-2">
                           <BarChart3 className="w-4 h-4 text-secondary" />
-                          <span className="font-semibold">{vacancy.filled} / {vacancy.slots} ocupados</span>
+                          <span className="font-semibold">{(vacancy.cupo_total ?? 0) - (vacancy.cupo_disponible ?? 0)} / {vacancy.cupo_total ?? 0} ocupados</span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2 mt-2">
                           <div
                             className="bg-secondary h-2 rounded-full"
-                            style={{ width: `${(vacancy.filled / vacancy.slots) * 100}%` }}
+                            style={{ width: `${(vacancy.cupo_total ?? 0) > 0 ? (((vacancy.cupo_total ?? 0) - (vacancy.cupo_disponible ?? 0)) / (vacancy.cupo_total ?? 0)) * 100 : 0}%` }}
                           ></div>
                         </div>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Ocupación</p>
                         <span className="text-2xl font-bold text-primary">
-                          {Math.round((vacancy.filled / vacancy.slots) * 100)}%
+                          {vacancy.cupo_total ? Math.round((((vacancy.cupo_total ?? 0) - (vacancy.cupo_disponible ?? 0)) / vacancy.cupo_total) * 100) : 0}%
                         </span>
                       </div>
                     </div>
@@ -205,7 +244,7 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                         }}
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        Ver solicitudes ({vacancy.applicants})
+                        Ver solicitudes (0)
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => onNavigate('estadisticas-empresa')}>
                         <BarChart3 className="w-4 h-4 mr-2" />
@@ -242,9 +281,9 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
                         <Briefcase className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <h4 className="font-medium">{vacancy.title}</h4>
+                        <h4 className="font-medium">{vacancy.titulo}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {vacancy.area} • {vacancy.applicants} solicitudes • {vacancy.filled}/{vacancy.slots} cupos
+                          {vacancy.descripcion?.split('\n\n')[0] || 'General'} • 0 solicitudes • {(vacancy.cupo_total ?? 0) - (vacancy.cupo_disponible ?? 0)}/{vacancy.cupo_total ?? 0} cupos
                         </p>
                       </div>
                     </div>
@@ -264,6 +303,10 @@ export default function VacantesEmpresa({ onNavigate }: { onNavigate: (view: str
       <ModalNuevaVacante
         isOpen={modalNuevaOpen}
         onClose={() => setModalNuevaOpen(false)}
+        onCreated={() => {
+          setModalNuevaOpen(false);
+          void loadVacancies();
+        }}
       />
 
       {selectedVacancy && (

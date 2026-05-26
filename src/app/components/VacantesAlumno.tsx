@@ -5,7 +5,6 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Sidebar from "./Sidebar";
-import ModalPostulacion from "./modals/ModalPostulacion";
 import supabase from "../lib/supabase";
 
 type VacancyRow = {
@@ -32,8 +31,6 @@ export default function VacantesAlumno({ onNavigate }: { onNavigate: (view: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedVacancy, setSelectedVacancy] = useState<VacancyCard | null>(null);
 
   const loadVacancies = async () => {
     setLoading(true);
@@ -223,8 +220,10 @@ export default function VacantesAlumno({ onNavigate }: { onNavigate: (view: stri
                           <Button
                             className="flex-1"
                             onClick={() => {
-                              setSelectedVacancy(vacancy);
-                              setModalOpen(true);
+                              if (source.empresa_id) {
+                                sessionStorage.setItem('qr-alumno-empresa-id', source.empresa_id);
+                              }
+                              onNavigate('qr-alumno');
                             }}
                           >
                             <Send className="w-4 h-4 mr-2" />
@@ -240,15 +239,6 @@ export default function VacantesAlumno({ onNavigate }: { onNavigate: (view: stri
           </Card>
         </div>
       </main>
-
-      <ModalPostulacion
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedVacancy(null);
-        }}
-        vacancy={selectedVacancy || { title: '', company: '', area: '', hours: 0, location: '' }}
-      />
     </div>
   );
 }
